@@ -306,6 +306,10 @@ styles.registerStyle("main", () => {
 			"margin-left": px(size.hpad_button),
 			"margin-right": px(size.hpad_button),
 		},
+		".plr-vpad": {
+			"margin-left": px(size.vpad),
+			"margin-right": px(size.vpad),
+		},
 		".mlr-l": {
 			"margin-left": px(size.hpad_large),
 			"margin-right": px(size.hpad_large),
@@ -2038,15 +2042,10 @@ styles.registerStyle("main", () => {
 			width: `${px(size.navbar_edge_width_mobile)}`,
 		},
 		".mobile .header-middle": {
-			position: "absolute",
-			right: px(size.navbar_edge_width_mobile),
-			left: px(size.navbar_edge_width_mobile),
-			top: 0,
-			bottom: 0,
 		},
 		".mobile .header-right": {
-			left: "auto",
-			width: `${px(size.navbar_edge_width_mobile)}`,
+			position: "initial",
+			// width: `${px(size.navbar_edge_width_mobile)}`,
 		},
 		".menu-shadow": {
 			"box-shadow": "0 4px 5px 2px rgba(0,0,0,0.14), 0 4px 5px 2px rgba(0,0,0,0.14), 0 4px 5px 2px rgba(0,0,0,0.14)",

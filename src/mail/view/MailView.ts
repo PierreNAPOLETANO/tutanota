@@ -52,6 +52,7 @@ import { ConversationViewModel } from "./ConversationViewModel.js"
 import { ConversationViewer } from "./ConversationViewer.js"
 import type { DesktopSystemFacade } from "../../native/common/generatedipc/DesktopSystemFacade.js"
 import { CreateMailViewerOptions } from "./MailViewer.js"
+import { IconButton } from "../../gui/base/IconButton.js"
 
 assertMainOrNode()
 
@@ -341,7 +342,20 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 			icon: () => Icons.PencilSquare,
 			colors: ButtonColor.Header,
 		}
-		return isNewMailActionAvailable() ? m(Button, openMailButtonAttrs) : null
+		return isNewMailActionAvailable()
+			? [
+				m(IconButton, {
+					title: "more_label",
+					click: noOp,
+					icon: Icons.More,
+				}),
+					m(IconButton, {
+						title: "newMail_action",
+						click: () => this.showNewMailDialog().catch(ofClass(PermissionError, noOp)),
+						icon: Icons.PencilSquare,
+					}),
+			  ]
+			: null
 	}
 
 	_getShortcuts(): Array<Shortcut> {
