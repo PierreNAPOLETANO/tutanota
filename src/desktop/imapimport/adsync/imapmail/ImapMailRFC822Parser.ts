@@ -51,14 +51,8 @@ export class ImapMailRFC822Parser {
 						}
 
 						let imapMailAttachment = new ImapMailAttachment(data.size, data.headers, data.contentType, content, data.checksum, data.related)
-
-						if (data.filename) {
-							imapMailAttachment.setFilename(data.filename)
-						}
-
-						if (data.cid) {
-							imapMailAttachment.setCid(data.cid)
-						}
+							.setFilename(data.filename)
+							.setCid(data.cid)
 
 						parsedImapRFC822.parsedAttachments?.push(imapMailAttachment)
 					}

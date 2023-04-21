@@ -28,7 +28,7 @@ export class ImapMailboxState {
 	path: string
 	uidValidity?: bigint
 	uidNext?: number
-	highestModSeq?: bigint | null // null indicates that the CONDSTORE IMAP extension, and therefore highestModSeq, is not supported
+	highestModSeq?: bigint | null // null indicates that the CONDSTORE (and QRESYNC) IMAP extension, and therefore highestModSeq, is not supported
 	importedUidToMailIdsMap: Map<number, ImapMailIds>
 
 	constructor(path: string, importedUidToMailIdsMap: Map<number, ImapMailIds>) {

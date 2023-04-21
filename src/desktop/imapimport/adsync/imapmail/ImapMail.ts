@@ -1,9 +1,6 @@
-// @ts-ignore
-// TODO type definitions
-import { FetchMessageObject } from "imapflow"
 import { ImapMailRFC822Parser, MailParserAddressObject } from "./ImapMailRFC822Parser.js"
 import { ImapMailbox } from "./ImapMailbox.js"
-import { AdSyncConfig } from "../ImapAdSync.js"
+import { ImapError } from "./ImapError.js"
 
 export class ImapMailAddress {
 	name?: string
@@ -19,7 +16,6 @@ export class ImapMailAddress {
 		return this
 	}
 
-	// TODO define type
 	static fromMailParserAddressObject(mailParserAddressObject: any): ImapMailAddress {
 		return new ImapMailAddress().setName(mailParserAddressObject.name as string).setAddress(mailParserAddressObject.address as string)
 	}
@@ -157,6 +153,7 @@ export class ImapMailEnvelope {
 		return imapMailEnvelope
 	}
 }
+
 export class ImapMailAttachment {
 	size: number
 	headers: Map<string, string>
@@ -176,25 +173,14 @@ export class ImapMailAttachment {
 		this.related = related
 	}
 
-	setFilename(filename: string): this {
+	setFilename(filename?: string): this {
 		this.filename = filename
 		return this
 	}
 
-	setCid(cid: string): this {
+	setCid(cid?: string): this {
 		this.cid = cid
 		return this
-	}
-}
-
-//TODO perform deduplication
-//TODO should we transfer the externalAttachmentId or map the hash to the externalAttachmentId in the web worker4
-//TODO probably method 1
-export class ImapMailReferenceAttachment {
-	externalAttachmentId: any
-
-	constructor(externalAttachmentId: any) {
-		this.externalAttachmentId = externalAttachmentId
 	}
 }
 
@@ -230,52 +216,56 @@ export class ImapMail {
 		this.rfc822Source = rfc822Source
 	}
 
-	setModSeq(modSeq: BigInt): this {
+	setModSeq(modSeq?: BigInt): this {
 		this.modSeq = modSeq
 		return this
 	}
 
-	setSize(size: number): this {
+	setSize(size?: number): this {
 		this.size = size
 		return this
 	}
 
-	setFlags(flags: Set<string>): this {
+	setFlags(flags?: Set<string>): this {
 		this.flags = flags
 		return this
 	}
 
-	setInternalDate(internalDate: Date): this {
+	setInternalDate(internalDate?: Date): this {
 		this.internalDate = internalDate
 		return this
 	}
 
-	setLabels(labels: Set<string>): this {
+	setLabels(labels?: Set<string>): this {
 		this.labels = labels
 		return this
 	}
 
-	setEnvelope(envelope: ImapMailEnvelope): this {
+	setEnvelope(envelope?: ImapMailEnvelope): this {
 		this.envelope = envelope
 		return this
 	}
 
-	setBody(body: ImapMailBody): this {
+	setBody(body?: ImapMailBody): this {
 		this.body = body
 		return this
 	}
 
-	setAttachments(attachments: ImapMailAttachment[]): this {
+	setAttachments(attachments?: ImapMailAttachment[]): this {
 		this.attachments = attachments
 		return this
 	}
 
-	setHeaders(headers: string): this {
+	setHeaders(headers?: string): this {
 		this.headers = headers
 		return this
 	}
 
-	static async fromImapFlowFetchMessageObject(mail: FetchMessageObject, belongsToMailbox: ImapMailbox) {
+	static async fromImapFlowFetchMessageObject(mail: FetchMessageObject, belongsToMailbox: ImapMailbox): Promise<ImapMail | ImapError> {
+		if (mail.source === undefined) {
+			return new ImapError(`No IMAP mail source available for IMAP mail with UID ${mail.uid}.`)
+		}
+
 		let imapMailRFC822Parser = new ImapMailRFC822Parser()
 		let parsedMailRFC822 = await imapMailRFC822Parser.parseSource(mail.source)
 

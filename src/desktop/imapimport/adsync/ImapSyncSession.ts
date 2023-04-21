@@ -46,7 +46,7 @@ export class ImapSyncSession implements SyncSessionEventListener {
 		this.state = SyncSessionState.PAUSED
 	}
 
-	// TODO return state here
+
 	async startSyncSession(imapSyncState: ImapSyncState): Promise<void> {
 		if (this.state != SyncSessionState.RUNNING) {
 			this.state = SyncSessionState.RUNNING

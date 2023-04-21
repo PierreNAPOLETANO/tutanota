@@ -181,7 +181,6 @@ export class ImapImporter implements ImapImportFacade {
 					parentFolderId = parentFolderSyncState?.mailFolder ? parentFolderSyncState.mailFolder : null
 				}
 
-				//TODO Check if folder is already existing
 				let newFolderSyncState = await this.importImapFacade.createImportMailFolder(imapMailbox, this.importImapAccountSyncState, parentFolderId)
 
 				if (newFolderSyncState) {

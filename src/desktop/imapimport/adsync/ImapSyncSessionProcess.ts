@@ -100,6 +100,8 @@ export class ImapSyncSessionProcess {
 			let isEnableImapQresync = this.adSyncConfig.isEnableImapQresync && imapMailboxStatus.highestModSeq != null
 			let fetchUidRange = await this.initFetchUidRange(imapClient, isEnableImapQresync)
 
+			// TODO if QRESYNC not available AND perform full sync and return DELETE events
+
 			if (fetchUidRange) {
 				let fetchOptions = {}
 				if (isEnableImapQresync) {
@@ -160,22 +162,27 @@ export class ImapSyncSessionProcess {
 							adSyncEventListener.onError(new ImapError(mail))
 						}
 
-						let imapMail = await ImapMail.fromImapFlowFetchMessageObject(
+						let imapMailResult = await ImapMail.fromImapFlowFetchMessageObject(
 							mail,
 							ImapMailbox.fromSyncSessionMailbox(this.adSyncOptimizer.optimizedSyncSessionMailbox),
 						)
 
-						// TODO What happens if only flags updated but IMAP server does not support QRESYNC?
-						// TODO Check if email is already downloaded before downloading the actual data
-						let isMailUpdate = this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.importedUidToMailIdsMap.has(imapMail.uid)
-						if (isMailUpdate) {
-							adSyncEventListener.onMail(imapMail, AdSyncEventType.UPDATE)
+						if (imapMailResult instanceof ImapMail) {
+							// TODO What happens if only flags updated but IMAP server does not support QRESYNC?
+							// TODO Check if email is already downloaded before downloading the actual data
+
+							let isMailUpdate = this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.importedUidToMailIdsMap.has(imapMailResult.uid)
+							if (isMailUpdate) {
+								adSyncEventListener.onMail(imapMailResult, AdSyncEventType.UPDATE)
+							} else {
+								this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.importedUidToMailIdsMap.set(
+									imapMailResult.uid,
+									new ImapMailIds(imapMailResult.uid),
+								)
+								adSyncEventListener.onMail(imapMailResult, AdSyncEventType.CREATE)
+							}
 						} else {
-							this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.importedUidToMailIdsMap.set(
-								imapMail.uid,
-								new ImapMailIds(imapMail.uid),
-							)
-							adSyncEventListener.onMail(imapMail, AdSyncEventType.CREATE)
+							adSyncEventListener.onError(imapMailResult)
 						}
 					}
 
