@@ -36,6 +36,7 @@ export class ImapSyncSession implements SyncSessionEventListener {
 	private adSyncConfig: AdSyncConfig
 	private state: SyncSessionState
 	private imapSyncState?: ImapSyncState
+	private isIncludeMailUpdates: boolean = false
 	private adSyncOptimizer?: AdSyncProcessesOptimizer
 	private runningSyncSessionProcesses: Map<number, ImapSyncSessionProcess> = new Map()
 	private downloadedQuota: number = 0
@@ -47,10 +48,11 @@ export class ImapSyncSession implements SyncSessionEventListener {
 	}
 
 
-	async startSyncSession(imapSyncState: ImapSyncState): Promise<void> {
+	async startSyncSession(imapSyncState: ImapSyncState, isIncludeMailUpdates: boolean): Promise<void> {
 		if (this.state != SyncSessionState.RUNNING) {
 			this.state = SyncSessionState.RUNNING
 			this.imapSyncState = imapSyncState
+			this.isIncludeMailUpdates = isIncludeMailUpdates
 			this.runSyncSession()
 		}
 		return
@@ -186,7 +188,7 @@ export class ImapSyncSession implements SyncSessionEventListener {
 				nextMailboxToDownload,
 				this.adSyncConfig.downloadBlockSizeOptimizationDifference,
 			)
-			let syncSessionProcess = new ImapSyncSessionProcess(processId, adSyncDownloadBlockSizeOptimizer, this.adSyncOptimizer, this.adSyncConfig)
+			let syncSessionProcess = new ImapSyncSessionProcess(processId, adSyncDownloadBlockSizeOptimizer, this.adSyncOptimizer, this.adSyncConfig, this.isIncludeMailUpdates)
 
 			this.runningSyncSessionProcesses.set(syncSessionProcess.processId, syncSessionProcess)
 			syncSessionProcess.startSyncSessionProcess(this.imapSyncState.imapAccount, this.adSyncEventListener).then((state) => {

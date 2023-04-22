@@ -8,7 +8,6 @@ const defaultAdSyncConfig: AdSyncConfig = {
 	parallelProcessesOptimizationDifference: 2,
 	downloadBlockSizeOptimizationDifference: 100,
 	isEnableImapQresync: true,
-	isEnableAttachmentDeduplication: true,
 }
 
 export interface AdSyncConfig {
@@ -17,7 +16,6 @@ export interface AdSyncConfig {
 	parallelProcessesOptimizationDifference: number
 	downloadBlockSizeOptimizationDifference: number
 	isEnableImapQresync: boolean
-	isEnableAttachmentDeduplication: boolean
 }
 
 export class ImapAdSync {
@@ -27,8 +25,8 @@ export class ImapAdSync {
 		this.syncSession = new ImapSyncSession(adSyncEventListener, adSyncConfig)
 	}
 
-	async startAdSync(imapSyncState: ImapSyncState): Promise<void> {
-		return this.syncSession.startSyncSession(imapSyncState)
+	async startAdSync(imapSyncState: ImapSyncState, isIncludeMailUpdates: boolean = false): Promise<void> {
+		return this.syncSession.startSyncSession(imapSyncState, isIncludeMailUpdates)
 	}
 
 	async stopAdSync(): Promise<void> {

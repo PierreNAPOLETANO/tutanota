@@ -104,7 +104,8 @@ export class ImapSyncSessionMailbox {
 		this.throughputHistory.set(Date.now(), throughput)
 	}
 
-	reportDownloadBlockSizeUsage(downloadBlockSize: DownloadBlockSize) {
-		this.downloadBlockSizeHistory.set(Date.now(), downloadBlockSize)
+	reportDownloadBlockSizeUsage(downloadBlockSize?: DownloadBlockSize) {
+		// -1 indicates IMAP QRESYNC
+		this.downloadBlockSizeHistory.set(Date.now(), downloadBlockSize ? downloadBlockSize : -1)
 	}
 }

@@ -1,6 +1,6 @@
 import { ImapMailRFC822Parser, MailParserAddressObject } from "./ImapMailRFC822Parser.js"
 import { ImapMailbox } from "./ImapMailbox.js"
-import { ImapError } from "./ImapError.js"
+import { ProgrammingError } from "../../../../api/common/error/ProgrammingError.js"
 
 export class ImapMailAddress {
 	name?: string
@@ -208,12 +208,12 @@ export class ImapMail {
 	attachments?: ImapMailAttachment[]
 	headers?: string
 	belongsToMailbox: ImapMailbox
-	rfc822Source: Buffer
+	externalMailId?: any
+	rfc822Source?: Buffer
 
-	constructor(uid: number, belongsToMailbox: ImapMailbox, rfc822Source: Buffer) {
+	constructor(uid: number, belongsToMailbox: ImapMailbox) {
 		this.uid = uid
 		this.belongsToMailbox = belongsToMailbox
-		this.rfc822Source = rfc822Source
 	}
 
 	setModSeq(modSeq?: BigInt): this {
@@ -261,9 +261,19 @@ export class ImapMail {
 		return this
 	}
 
-	static async fromImapFlowFetchMessageObject(mail: FetchMessageObject, belongsToMailbox: ImapMailbox): Promise<ImapMail | ImapError> {
+	setExternalMailId(externalMailId?: any): this {
+		this.externalMailId = externalMailId
+		return this
+	}
+
+	setRfc822Source(rfc822Source?: Buffer): this {
+		this.rfc822Source = rfc822Source
+		return this
+	}
+
+	static async fromImapFlowFetchMessageObject(mail: FetchMessageObject, belongsToMailbox: ImapMailbox, externalMailId: any): Promise<ImapMail> {
 		if (mail.source === undefined) {
-			return new ImapError(`No IMAP mail source available for IMAP mail with UID ${mail.uid}.`)
+			throw new ProgrammingError(`IMAP mail source not available.`)
 		}
 
 		let imapMailRFC822Parser = new ImapMailRFC822Parser()
@@ -272,13 +282,15 @@ export class ImapMail {
 		let headersString = new TextDecoder().decode(mail.headers)
 
 		// TODO use emailId when uid is not reliable
-		let imapMail = new ImapMail(mail.uid, belongsToMailbox, mail.source)
+		let imapMail = new ImapMail(mail.uid, belongsToMailbox)
 			.setModSeq(mail.modseq)
 			.setSize(mail.size)
 			.setInternalDate(mail.internalDate)
 			.setFlags(mail.flags)
 			.setLabels(mail.labels)
 			.setHeaders(headersString)
+			.setExternalMailId(externalMailId)
+			.setRfc822Source(mail.source)
 
 		if (parsedMailRFC822.parsedEnvelope) {
 			imapMail.setEnvelope(parsedMailRFC822.parsedEnvelope)

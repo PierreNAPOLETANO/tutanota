@@ -7,6 +7,8 @@ export interface AdSyncProcessesOptimizerEventListener {
 	onDownloadUpdate(processId: number, syncSessionMailbox: ImapSyncSessionMailbox, downloadedQuota: number): void
 
 	onMailboxFinish(processId: number, syncSessionMailbox: ImapSyncSessionMailbox): void
+
+	onMailboxInterrupted(processId: number, syncSessionMailbox: ImapSyncSessionMailbox): void
 }
 
 export class OptimizerProcess {
@@ -77,9 +79,9 @@ export class AdSyncProcessesOptimizer extends AdSyncOptimizer implements AdSyncP
 
 	protected nextMailboxesToDownload(amount: number): ImapSyncSessionMailbox[] {
 		return this.optimizedSyncSessionMailboxes
-			.filter((mailbox) => !this.isExistRunningProcessForMailbox(mailbox)) // we only allow one process per IMAP folder
-			.sort((a, b) => b.importance - a.importance)
-			.slice(0, amount)
+				   .filter((mailbox) => !this.isExistRunningProcessForMailbox(mailbox)) // we only allow one process per IMAP folder
+				   .sort((a, b) => b.importance - a.importance)
+				   .slice(0, amount)
 	}
 
 	protected nextProcessIdsToDrop(amount: number): number[] {
@@ -143,5 +145,13 @@ export class AdSyncProcessesOptimizer extends AdSyncOptimizer implements AdSyncP
 				this.startSyncSessionProcesses(1)
 			}
 		}
+	}
+
+	onMailboxInterrupted(processId: number, syncSessionMailbox: ImapSyncSessionMailbox): void {
+		this.runningProcessMap.delete(processId)
+		this.syncSessionEventListener.onStopSyncSessionProcess(processId)
+
+		// start a new sync session processes in replacement for the interrupted one
+		this.startSyncSessionProcesses(1)
 	}
 }
