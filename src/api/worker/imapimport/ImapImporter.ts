@@ -133,14 +133,19 @@ export class ImapImporter implements ImapImportFacade {
 				let imapUid = parseInt(importImapUidToMailIds.imapUid)
 				let importedImapMailIds = new ImapMailIds(imapUid)
 				if (importImapUidToMailIds.imapModSeq != null) {
-					importedImapMailIds.modSeq = parseInt(importImapUidToMailIds.imapModSeq)
+					importedImapMailIds.modSeq = BigInt(importImapUidToMailIds.imapModSeq)
 				}
 				importedImapMailIds.externalMailId = importImapUidToMailIds.mail
 
 				importedImapUidToMailIdsMap.set(imapUid, importedImapMailIds)
 			})
 
-			imapMailboxStates.push(new ImapMailboxState(folderSyncState.path, importedImapUidToMailIdsMap))
+			let imapMailboxState = new ImapMailboxState(folderSyncState.path, importedImapUidToMailIdsMap)
+			imapMailboxState.uidNext = folderSyncState.uidnext ? parseInt(folderSyncState.uidnext) : undefined
+			imapMailboxState.uidValidity = folderSyncState.uidvalidity ? BigInt(folderSyncState.uidvalidity) : undefined
+			imapMailboxState.highestModSeq = folderSyncState.highestmodseq ? BigInt(folderSyncState.highestmodseq) : null
+
+			imapMailboxStates.push(imapMailboxState)
 		}
 
 		return imapMailboxStates

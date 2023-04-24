@@ -16,7 +16,7 @@ export class ImapAccount {
 
 export class ImapMailIds {
 	uid: number
-	modSeq?: number
+	modSeq?: bigint
 	externalMailId?: any
 
 	constructor(uid: number) {

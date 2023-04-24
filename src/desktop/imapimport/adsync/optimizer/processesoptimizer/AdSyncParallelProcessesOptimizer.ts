@@ -4,8 +4,12 @@ import { ProgrammingError } from "../../../../../api/common/error/ProgrammingErr
 import { AdSyncProcessesOptimizer, OptimizerProcess } from "./AdSyncProcessesOptimizer.js"
 
 const OPTIMIZATION_INTERVAL = 5 // in seconds
+const MINIMUM_PARALLEL_PROCESSES = 2
+const MAX_PARALLEL_PROCESSES = 15
+
 export class AdSyncParallelProcessesOptimizer extends AdSyncProcessesOptimizer {
 	private optimizerUpdateActionHistory: OptimizerUpdateAction[] = [OptimizerUpdateAction.NO_UPDATE]
+	private maxParallelProcesses: number = MAX_PARALLEL_PROCESSES
 
 	override startAdSyncOptimizer(): void {
 		super.startAdSyncOptimizer()
@@ -13,7 +17,7 @@ export class AdSyncParallelProcessesOptimizer extends AdSyncProcessesOptimizer {
 		this.optimize() // call once to start downloading of mails
 	}
 
-	// TODO IMAP server rate limits
+
 	override optimize(): void {
 		let currentInterval = this.getCurrentTimeStampInterval()
 		let lastInterval = this.getLastTimeStampInterval()
@@ -28,8 +32,12 @@ export class AdSyncParallelProcessesOptimizer extends AdSyncProcessesOptimizer {
 
 		if (averageCombinedThroughputCurrent + THROUGHPUT_THRESHOLD >= averageCombinedThroughputLast) {
 			if (lastUpdateAction != OptimizerUpdateAction.DECREASE) {
-				this.startSyncSessionProcesses(this.optimizationDifference)
-				this.optimizerUpdateActionHistory.push(OptimizerUpdateAction.INCREASE)
+				if (this.runningProcessMap.size < this.maxParallelProcesses) {
+					this.startSyncSessionProcesses(this.optimizationDifference)
+					this.optimizerUpdateActionHistory.push(OptimizerUpdateAction.INCREASE)
+				} else {
+					this.optimizerUpdateActionHistory.push(OptimizerUpdateAction.NO_UPDATE)
+				}
 			} else if (this.runningProcessMap.size > 1) {
 				this.stopSyncSessionProcesses(1)
 				this.optimizerUpdateActionHistory.push(OptimizerUpdateAction.DECREASE)
@@ -58,6 +66,13 @@ export class AdSyncParallelProcessesOptimizer extends AdSyncProcessesOptimizer {
 					return acc
 				}, 0) / (activeProcessCount != 0 ? activeProcessCount : 1)
 			)
+		}
+	}
+
+	forceStopSyncSessionProcess(processId: number, isExceededRateLimit: boolean = false) {
+		super.forceStopSyncSessionProcess(processId)
+		if (isExceededRateLimit && this.runningProcessMap.size >= MINIMUM_PARALLEL_PROCESSES) {
+			this.maxParallelProcesses = this.runningProcessMap.size - 1
 		}
 	}
 }

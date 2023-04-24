@@ -53,7 +53,13 @@ export class DifferentialUidLoader {
 	async calculateInitialUidDiff(): Promise<number[]> {
 		// if IMAP QRESYNC is enabled and supported by the IMAP server, we do not need to calculate the diff on our own
 		if (this.isEnableImapQresync) {
-			return []
+			this.uidFetchRequestQueue.push(
+				{
+					uidFetchSequenceString: '1:*',
+					fetchRequestType: UidFetchRequestType.QRESYNC
+				}
+			)
+			return [] // delete events are handle automatically by IMAP QRESYNC extension
 		}
 
 		let mails = await this.imapClient.fetch(`1:*`, { uid: true }, {})
@@ -74,13 +80,6 @@ export class DifferentialUidLoader {
 	}
 
 	async getNextUidFetchRequest(downloadBlockSize: number): Promise<UidFetchRequest | null> {
-		if (this.isEnableImapQresync) {
-			return {
-				uidFetchSequenceString: '*',
-				fetchRequestType: UidFetchRequestType.QRESYNC
-			}
-		}
-
 		let waitingUidFetchRequest = this.uidFetchRequestQueue.pop()
 		if (waitingUidFetchRequest) {
 			return waitingUidFetchRequest

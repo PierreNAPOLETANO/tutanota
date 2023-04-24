@@ -130,7 +130,7 @@ export class ImportImapFacade {
 	): Promise<ImportImapFolderSyncState> {
 		folderSyncState.uidnext = imapMailboxStatus.uidNext.toString()
 		folderSyncState.uidvalidity = imapMailboxStatus.uidValidity.toString()
-		folderSyncState.highestmodseq = (imapMailboxStatus.highestModSeq ? imapMailboxStatus.highestModSeq : 0).toString() // value 0 denotes that the mailbox doesn't support persistent mod-sequences (see RFC4551)
+		folderSyncState.highestmodseq = imapMailboxStatus.highestModSeq?.toString() ?? null // value null denotes that the mailbox doesn't support persistent mod-sequences
 
 		await this.entityClient.update(folderSyncState)
 		return this.entityClient.load(ImportImapFolderSyncStateTypeRef, folderSyncState._id)

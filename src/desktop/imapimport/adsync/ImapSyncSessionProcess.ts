@@ -16,7 +16,8 @@ export enum SyncSessionProcessState {
 	NOT_STARTED,
 	STOPPED,
 	RUNNING,
-	CONNECTION_FAILED,
+	CONNECTION_FAILED_UNKOWN,
+	CONNECTION_FAILED_NO
 }
 
 export class ImapSyncSessionProcess {
@@ -50,7 +51,7 @@ export class ImapSyncSessionProcess {
 			tls: {
 				rejectUnauthorized: false, // TODO deactivate after testing
 			},
-			logger: false,
+			logger: true,
 			auth: {
 				user: imapAccount.username,
 				pass: imapAccount.password,
@@ -67,7 +68,12 @@ export class ImapSyncSessionProcess {
 				this.state = SyncSessionProcessState.RUNNING
 			}
 		} catch (error) {
-			this.state = SyncSessionProcessState.CONNECTION_FAILED
+			// if the error response includes NO, we most probably exceeded the maximum amount of allowed connections
+			if (error.response.includes("NO")) { // TODO better check if authentication failed?
+				this.state = SyncSessionProcessState.CONNECTION_FAILED_NO
+			} else {
+				this.state = SyncSessionProcessState.CONNECTION_FAILED_UNKOWN
+			}
 		}
 		return this.state
 	}
@@ -79,29 +85,31 @@ export class ImapSyncSessionProcess {
 	}
 
 	private async runSyncSessionProcess(imapClient: typeof ImapFlow, adSyncEventListener: AdSyncEventListener) {
-		async function releaseLockAndLogout() {
-			lock.release()
-			await imapClient.logout()
-		}
-
-		let status = await imapClient.status(this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.path, {
-			messages: true,
-			uidNext: true,
-			uidValidity: true,
-			highestModseq: true,
-		})
-
-		let imapMailboxStatus = ImapMailboxStatus.fromImapFlowStatusObject(status)
-		this.updateMailboxState(imapMailboxStatus)
-
-		this.adSyncOptimizer.optimizedSyncSessionMailbox.initSessionMailbox(imapMailboxStatus.messageCount)
-		adSyncEventListener.onMailboxStatus(imapMailboxStatus)
-
-		let lock = await imapClient.getMailboxLock(this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.path, { readonly: true })
-		let openedImapMailbox = ImapMailbox.fromSyncSessionMailbox(this.adSyncOptimizer.optimizedSyncSessionMailbox)
+		let isMailboxFinished = false
 
 		try {
-			let isEnableImapQresync = this.adSyncConfig.isEnableImapQresync && imapMailboxStatus.highestModSeq != null
+			let highestModSeq = this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.highestModSeq
+
+			let status = await imapClient.status(this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.path, {
+				messages: true,
+				uidNext: true,
+				uidValidity: true,
+				highestModseq: true,
+			})
+
+			let imapMailboxStatus = ImapMailboxStatus.fromImapFlowStatusObject(status)
+			this.updateMailboxState(imapMailboxStatus)
+
+			this.adSyncOptimizer.optimizedSyncSessionMailbox.initSessionMailbox(imapMailboxStatus.messageCount)
+			adSyncEventListener.onMailboxStatus(imapMailboxStatus)
+
+
+			// TODO change back to getMailboxLock ?
+			await imapClient.mailboxOpen(this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.path, { readonly: true })
+
+			let openedImapMailbox = ImapMailbox.fromSyncSessionMailbox(this.adSyncOptimizer.optimizedSyncSessionMailbox)
+
+			let isEnableImapQresync = this.adSyncConfig.isEnableImapQresync && highestModSeq != null
 
 			let differentialUidLoader = new DifferentialUidLoader(
 				imapClient,
@@ -137,7 +145,7 @@ export class ImapSyncSessionProcess {
 
 				for await (const mail of mails) {
 					if (this.state == SyncSessionProcessState.STOPPED) {
-						await releaseLockAndLogout()
+						await this.logout(imapClient, isMailboxFinished)
 						return
 					}
 
@@ -185,23 +193,30 @@ export class ImapSyncSessionProcess {
 				nextUidFetchRequest = await differentialUidLoader.getNextUidFetchRequest(this.adSyncOptimizer.optimizedSyncSessionMailbox.downloadBlockSize)
 			}
 
-			this.adSyncProcessesOptimizerEventListener.onMailboxFinish(this.processId, this.adSyncOptimizer.optimizedSyncSessionMailbox)
-
+			isMailboxFinished = true
 		} catch (error: any) {
 			adSyncEventListener.onError(new ImapError(error))
-			this.adSyncProcessesOptimizerEventListener.onMailboxInterrupted(this.processId, this.adSyncOptimizer.optimizedSyncSessionMailbox)
 		} finally {
-			await releaseLockAndLogout()
+			await this.logout(imapClient, isMailboxFinished)
+		}
+	}
+
+	private async logout(imapClient: typeof ImapFlow, isMailboxFinished: boolean) {
+		await imapClient.logout()
+
+		if (isMailboxFinished) {
+			this.adSyncProcessesOptimizerEventListener.onMailboxFinish(this.processId, this.adSyncOptimizer.optimizedSyncSessionMailbox)
+		} else {
+			this.adSyncProcessesOptimizerEventListener.onMailboxInterrupted(this.processId, this.adSyncOptimizer.optimizedSyncSessionMailbox)
 		}
 	}
 
 	private initFetchOptions(imapMailboxStatus: ImapMailboxStatus, isEnableImapQresync: boolean) {
 		let fetchOptions = {}
 		if (isEnableImapQresync) {
-			let importedModSequences = [...this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.importedUidToMailIdsMap.values()].map(
-				(value) => (value.modSeq ? value.modSeq : 0),
-			)
-			let highestModSeq = Math.max(...importedModSequences)
+			let highestModSeq = [...this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.importedUidToMailIdsMap.values()].reduce<bigint>(
+				(acc, imapMailIds) => imapMailIds.modSeq && imapMailIds.modSeq > acc ? imapMailIds.modSeq : acc
+				, BigInt(0))
 			fetchOptions = {
 				uid: true,
 				changedSince: highestModSeq,
@@ -214,6 +229,7 @@ export class ImapSyncSessionProcess {
 		return fetchOptions
 	}
 
+	// TODO handle Qresync delete events
 	private handleQresyncFetchResult(imapMail: ImapMail, adSyncEventListener: AdSyncEventListener) {
 		let isMailUpdate = this.adSyncOptimizer.optimizedSyncSessionMailbox.mailboxState.importedUidToMailIdsMap.has(imapMail.uid)
 

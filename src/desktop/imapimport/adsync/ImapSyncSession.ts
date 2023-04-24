@@ -13,6 +13,7 @@ import { AdSyncProcessesOptimizer } from "./optimizer/processesoptimizer/AdSyncP
 
 const DOWNLOADED_QUOTA_SAFETY_THRESHOLD: number = 50000000 // in byte
 const DEFAULT_POSTPONE_TIME: number = 24 * 60 * 60 * 1000 // 24 hours
+const ERROR_POSTPONE_TIME: number = 60 * 1000 // 60 seconds
 
 export enum SyncSessionState {
 	RUNNING,
@@ -63,7 +64,7 @@ export class ImapSyncSession implements SyncSessionEventListener {
 		return
 	}
 
-	private async shutDownSyncSession(isPostpone: boolean) {
+	private async shutDownSyncSession(isPostpone: boolean, postponeDuration: number = DEFAULT_POSTPONE_TIME) {
 		this.state = SyncSessionState.PAUSED
 
 		this.adSyncOptimizer?.stopAdSyncOptimizer()
@@ -74,23 +75,25 @@ export class ImapSyncSession implements SyncSessionEventListener {
 
 		if (isPostpone) {
 			this.state = SyncSessionState.POSTPONED
-			this.adSyncEventListener.onPostpone(new Date(Date.now() + DEFAULT_POSTPONE_TIME))
+			this.adSyncEventListener.onPostpone(new Date(Date.now() + postponeDuration))
 		}
 	}
 
 	private async runSyncSession() {
 		let mailboxes = await this.setupSyncSession()
 
-		if (this.adSyncConfig.isEnableParallelProcessesOptimizer) {
-			this.adSyncOptimizer = new AdSyncParallelProcessesOptimizer(mailboxes, this.adSyncConfig.parallelProcessesOptimizationDifference, this)
-		} else {
-			// start AdSyncSingleProcessesOptimizer with optimizationDifference of zero (0) (always open only a single mailbox (i.e. folder) at a time)
-			this.adSyncOptimizer = new AdSyncSingleProcessesOptimizer(mailboxes, this)
+		if (mailboxes != null) {
+			if (this.adSyncConfig.isEnableParallelProcessesOptimizer) {
+				this.adSyncOptimizer = new AdSyncParallelProcessesOptimizer(mailboxes, this.adSyncConfig.parallelProcessesOptimizationDifference, this)
+			} else {
+				// start AdSyncSingleProcessesOptimizer with optimizationDifference of zero (0) (always open only a single mailbox (i.e. folder) at a time)
+				this.adSyncOptimizer = new AdSyncSingleProcessesOptimizer(mailboxes, this)
+			}
+			this.adSyncOptimizer.startAdSyncOptimizer()
 		}
-		this.adSyncOptimizer.startAdSyncOptimizer()
 	}
 
-	private async setupSyncSession(): Promise<ImapSyncSessionMailbox[]> {
+	private async setupSyncSession(): Promise<ImapSyncSessionMailbox[] | null> {
 		if (!this.imapSyncState) {
 			throw new ProgrammingError("The ImapSyncState has not been set!")
 		}
@@ -114,15 +117,20 @@ export class ImapSyncSession implements SyncSessionEventListener {
 			},
 		})
 
-		await imapClient.connect()
-		let listTreeResponse = await imapClient.listTree()
-		await imapClient.logout()
+		try {
+			await imapClient.connect()
+			let listTreeResponse = await imapClient.listTree()
+			await imapClient.logout()
 
-		let fetchedRootMailboxes = listTreeResponse.folders.map((listTreeResponse) => {
-			return ImapMailbox.fromImapFlowListTreeResponse(listTreeResponse, null)
-		})
 
-		return this.getSyncSessionMailboxes(knownMailboxes, fetchedRootMailboxes)
+			let fetchedRootMailboxes = listTreeResponse.folders.map((listTreeResponse) => {
+				return ImapMailbox.fromImapFlowListTreeResponse(listTreeResponse, null)
+			})
+			return this.getSyncSessionMailboxes(knownMailboxes, fetchedRootMailboxes)
+		} catch (error) {
+			await this.shutDownSyncSession(true, ERROR_POSTPONE_TIME)
+			return null
+		}
 	}
 
 	private getSyncSessionMailboxes(knownMailboxes: ImapSyncSessionMailbox[], fetchedRootMailboxes: ImapMailbox[]): ImapSyncSessionMailbox[] {
@@ -192,9 +200,10 @@ export class ImapSyncSession implements SyncSessionEventListener {
 
 			this.runningSyncSessionProcesses.set(syncSessionProcess.processId, syncSessionProcess)
 			syncSessionProcess.startSyncSessionProcess(this.imapSyncState.imapAccount, this.adSyncEventListener).then((state) => {
-				if (state == SyncSessionProcessState.CONNECTION_FAILED) {
-					// TODO we may have exceeded a rate limit on the number of parallel connections
-					this.adSyncOptimizer?.forceStopSyncSessionProcess(processId)
+				if (state == SyncSessionProcessState.CONNECTION_FAILED_NO) {
+					this.adSyncOptimizer?.forceStopSyncSessionProcess(processId, true)
+				} else if (state == SyncSessionProcessState.CONNECTION_FAILED_UNKOWN) {
+					this.adSyncOptimizer?.forceStopSyncSessionProcess(processId, false)
 				} else {
 					if (this.adSyncConfig.isEnableDownloadBlockSizeOptimizer && this.state == SyncSessionState.RUNNING) {
 						adSyncDownloadBlockSizeOptimizer.startAdSyncOptimizer()

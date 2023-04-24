@@ -4637,15 +4637,15 @@ export const typeModels = {
         "name": "ImportImapDeleteIn",
         "since": 62,
         "type": "DATA_TRANSFER_TYPE",
-        "id": 1453,
-        "rootId": "CHR1dGFub3RhAAWt",
+        "id": 1450,
+        "rootId": "CHR1dGFub3RhAAWq",
         "versioned": false,
         "encrypted": true,
         "values": {
             "_format": {
                 "final": false,
                 "name": "_format",
-                "id": 1454,
+                "id": 1451,
                 "since": 62,
                 "type": "Number",
                 "cardinality": "One",
@@ -4656,7 +4656,7 @@ export const typeModels = {
             "imapAccountSyncState": {
                 "final": false,
                 "name": "imapAccountSyncState",
-                "id": 1455,
+                "id": 1452,
                 "since": 62,
                 "type": "ELEMENT_ASSOCIATION",
                 "cardinality": "One",
@@ -4671,15 +4671,15 @@ export const typeModels = {
         "name": "ImportImapFolderDeleteIn",
         "since": 62,
         "type": "DATA_TRANSFER_TYPE",
-        "id": 1438,
-        "rootId": "CHR1dGFub3RhAAWe",
+        "id": 1435,
+        "rootId": "CHR1dGFub3RhAAWb",
         "versioned": false,
         "encrypted": false,
         "values": {
             "_format": {
                 "final": false,
                 "name": "_format",
-                "id": 1439,
+                "id": 1436,
                 "since": 62,
                 "type": "Number",
                 "cardinality": "One",
@@ -4690,7 +4690,7 @@ export const typeModels = {
             "imapFolderSyncState": {
                 "final": false,
                 "name": "imapFolderSyncState",
-                "id": 1440,
+                "id": 1437,
                 "since": 62,
                 "type": "LIST_ELEMENT_ASSOCIATION",
                 "cardinality": "One",
@@ -4719,15 +4719,6 @@ export const typeModels = {
                 "cardinality": "One",
                 "encrypted": false
             },
-            "highestmodseq": {
-                "final": false,
-                "name": "highestmodseq",
-                "id": 1432,
-                "since": 62,
-                "type": "Number",
-                "cardinality": "One",
-                "encrypted": true
-            },
             "ownerEncSessionKey": {
                 "final": true,
                 "name": "ownerEncSessionKey",
@@ -4754,31 +4745,13 @@ export const typeModels = {
                 "type": "String",
                 "cardinality": "One",
                 "encrypted": true
-            },
-            "uidnext": {
-                "final": false,
-                "name": "uidnext",
-                "id": 1431,
-                "since": 62,
-                "type": "Number",
-                "cardinality": "One",
-                "encrypted": true
-            },
-            "uidvalidity": {
-                "final": false,
-                "name": "uidvalidity",
-                "id": 1430,
-                "since": 62,
-                "type": "Number",
-                "cardinality": "One",
-                "encrypted": true
             }
         },
         "associations": {
             "imapAccountSyncState": {
                 "final": true,
                 "name": "imapAccountSyncState",
-                "id": 1433,
+                "id": 1430,
                 "since": 62,
                 "type": "ELEMENT_ASSOCIATION",
                 "cardinality": "One",
@@ -4788,7 +4761,7 @@ export const typeModels = {
             "mailFolder": {
                 "final": true,
                 "name": "mailFolder",
-                "id": 1434,
+                "id": 1431,
                 "since": 62,
                 "type": "LIST_ELEMENT_ASSOCIATION",
                 "cardinality": "One",
@@ -4803,15 +4776,15 @@ export const typeModels = {
         "name": "ImportImapFolderPostOut",
         "since": 62,
         "type": "DATA_TRANSFER_TYPE",
-        "id": 1435,
-        "rootId": "CHR1dGFub3RhAAWb",
+        "id": 1432,
+        "rootId": "CHR1dGFub3RhAAWY",
         "versioned": false,
         "encrypted": false,
         "values": {
             "_format": {
                 "final": false,
                 "name": "_format",
-                "id": 1436,
+                "id": 1433,
                 "since": 62,
                 "type": "Number",
                 "cardinality": "One",
@@ -4822,7 +4795,7 @@ export const typeModels = {
             "imapFolderSyncState": {
                 "final": false,
                 "name": "imapFolderSyncState",
-                "id": 1437,
+                "id": 1434,
                 "since": 62,
                 "type": "LIST_ELEMENT_ASSOCIATION",
                 "cardinality": "One",
@@ -4893,7 +4866,7 @@ export const typeModels = {
                 "id": 1355,
                 "since": 62,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": true
             },
             "path": {
@@ -4911,7 +4884,7 @@ export const typeModels = {
                 "id": 1354,
                 "since": 62,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": true
             },
             "uidvalidity": {
@@ -4920,7 +4893,7 @@ export const typeModels = {
                 "id": 1353,
                 "since": 62,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": true
             }
         },
@@ -4953,15 +4926,15 @@ export const typeModels = {
         "name": "ImportImapPostIn",
         "since": 62,
         "type": "DATA_TRANSFER_TYPE",
-        "id": 1442,
-        "rootId": "CHR1dGFub3RhAAWi",
+        "id": 1439,
+        "rootId": "CHR1dGFub3RhAAWf",
         "versioned": false,
         "encrypted": true,
         "values": {
             "_format": {
                 "final": false,
                 "name": "_format",
-                "id": 1443,
+                "id": 1440,
                 "since": 62,
                 "type": "Number",
                 "cardinality": "One",
@@ -4970,7 +4943,7 @@ export const typeModels = {
             "maxQuota": {
                 "final": false,
                 "name": "maxQuota",
-                "id": 1444,
+                "id": 1441,
                 "since": 62,
                 "type": "Number",
                 "cardinality": "One",
@@ -4979,7 +4952,7 @@ export const typeModels = {
             "ownerEncImapAccountSyncStateSessionKey": {
                 "final": true,
                 "name": "ownerEncImapAccountSyncStateSessionKey",
-                "id": 1447,
+                "id": 1444,
                 "since": 62,
                 "type": "Bytes",
                 "cardinality": "One",
@@ -4988,7 +4961,7 @@ export const typeModels = {
             "ownerGroup": {
                 "final": true,
                 "name": "ownerGroup",
-                "id": 1446,
+                "id": 1443,
                 "since": 62,
                 "type": "GeneratedId",
                 "cardinality": "One",
@@ -4997,7 +4970,7 @@ export const typeModels = {
             "postponedUntil": {
                 "final": false,
                 "name": "postponedUntil",
-                "id": 1445,
+                "id": 1442,
                 "since": 62,
                 "type": "Number",
                 "cardinality": "One",
@@ -5008,7 +4981,7 @@ export const typeModels = {
             "imapAccount": {
                 "final": true,
                 "name": "imapAccount",
-                "id": 1448,
+                "id": 1445,
                 "since": 62,
                 "type": "AGGREGATION",
                 "cardinality": "One",
@@ -5018,7 +4991,7 @@ export const typeModels = {
             "rootImportMailFolder": {
                 "final": true,
                 "name": "rootImportMailFolder",
-                "id": 1449,
+                "id": 1446,
                 "since": 62,
                 "type": "LIST_ELEMENT_ASSOCIATION",
                 "cardinality": "ZeroOrOne",
@@ -5033,15 +5006,15 @@ export const typeModels = {
         "name": "ImportImapPostOut",
         "since": 62,
         "type": "DATA_TRANSFER_TYPE",
-        "id": 1450,
-        "rootId": "CHR1dGFub3RhAAWq",
+        "id": 1447,
+        "rootId": "CHR1dGFub3RhAAWn",
         "versioned": false,
         "encrypted": false,
         "values": {
             "_format": {
                 "final": false,
                 "name": "_format",
-                "id": 1451,
+                "id": 1448,
                 "since": 62,
                 "type": "Number",
                 "cardinality": "One",
@@ -5052,7 +5025,7 @@ export const typeModels = {
             "imapAccountSyncState": {
                 "final": false,
                 "name": "imapAccountSyncState",
-                "id": 1452,
+                "id": 1449,
                 "since": 62,
                 "type": "ELEMENT_ASSOCIATION",
                 "cardinality": "One",
@@ -7110,7 +7083,7 @@ export const typeModels = {
             "imapAccountSyncState": {
                 "final": false,
                 "name": "imapAccountSyncState",
-                "id": 1457,
+                "id": 1454,
                 "since": 62,
                 "type": "ELEMENT_ASSOCIATION",
                 "cardinality": "ZeroOrOne",

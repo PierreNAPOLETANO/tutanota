@@ -5,29 +5,29 @@ export class ImapMailboxStatus {
 	messageCount?: number
 	uidNext: number
 	uidValidity: bigint
-	highestModSeq: bigint | null // null indicates that the CONDSTORE IMAP extension, and therefore highestModSeq, is not supported
+	highestModSeq?: bigint | null // null indicates that the CONDSTORE IMAP extension, and therefore highestModSeq, is not supported
 
-	constructor(path: string, uidNext: number, uidValidity: bigint, highestModSeq: bigint | null) {
+	constructor(path: string, uidNext: number, uidValidity: bigint) {
 		this.path = path
 		this.uidNext = uidNext
 		this.uidValidity = uidValidity
-		this.highestModSeq = highestModSeq
 	}
 
-	setMessageCount(messageCount: number): this {
+	setMessageCount(messageCount?: number): this {
 		this.messageCount = messageCount
 		return this
 	}
 
-	static fromImapFlowStatusObject(statusObject: StatusObject): ImapMailboxStatus {
-		// @ts-ignore // TODO types
-		let imapMailboxStatus = new ImapMailboxStatus(statusObject.path, statusObject.uidNext, statusObject.uidValidity, statusObject.highestModSeq)
+	setHighestModSeq(highestModSeq?: bigint | null): this {
+		this.highestModSeq = highestModSeq ?? null
+		return this
+	}
 
-		// @ts-ignore
-		if (statusObject.messages) {
-			// @ts-ignore
-			imapMailboxStatus.setMessageCount(statusObject.messages)
-		}
+	static fromImapFlowStatusObject(statusObject: StatusObject): ImapMailboxStatus {
+
+		let imapMailboxStatus = new ImapMailboxStatus(statusObject.path, statusObject.uidNext!, statusObject.uidValidity!)
+			.setMessageCount(statusObject.messages)
+			.setHighestModSeq(statusObject.highestModseq)
 
 		return imapMailboxStatus
 	}

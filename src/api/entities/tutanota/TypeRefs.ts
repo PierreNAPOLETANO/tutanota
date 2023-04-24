@@ -1224,12 +1224,9 @@ export type ImportImapFolderPostIn = {
 	_errors: Object;
 
 	_format: NumberString;
-	highestmodseq: NumberString;
 	ownerEncSessionKey: Uint8Array;
 	ownerGroup: Id;
 	path: string;
-	uidnext: NumberString;
-	uidvalidity: NumberString;
 
 	imapAccountSyncState: Id;
 	mailFolder: IdTuple;
@@ -1262,10 +1259,10 @@ export type ImportImapFolderSyncState = {
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
 	_permissions: Id;
-	highestmodseq: NumberString;
+	highestmodseq: null | NumberString;
 	path: string;
-	uidnext: NumberString;
-	uidvalidity: NumberString;
+	uidnext: null | NumberString;
+	uidvalidity: null | NumberString;
 
 	importedImapUidToMailIdsMap: Id;
 	mailFolder: IdTuple;

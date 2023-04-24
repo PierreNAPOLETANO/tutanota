@@ -11,4 +11,8 @@ export class AdSyncSingleProcessesOptimizer extends AdSyncProcessesOptimizer {
 		super.startAdSyncOptimizer()
 		this.startSyncSessionProcesses(1)
 	}
+
+	override forceStopSyncSessionProcess(processId: number, isExceededRateLimit: boolean = false) {
+		super.forceStopSyncSessionProcess(processId)
+	}
 }

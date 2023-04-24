@@ -111,7 +111,7 @@ export class AdSyncProcessesOptimizer extends AdSyncOptimizer implements AdSyncP
 		})
 	}
 
-	forceStopSyncSessionProcess(processId: number) {
+	forceStopSyncSessionProcess(processId: number,  isExceededRateLimit: boolean = false) {
 		this.runningProcessMap.delete(processId)
 		this.syncSessionEventListener.onStopSyncSessionProcess(processId)
 	}
