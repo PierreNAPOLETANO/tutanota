@@ -34,10 +34,10 @@ export function sqliteNativeBannerPlugin({ environment, rootDir, dstPath, native
 }
 
 /**
- * Rollup plugin which injects path to better-sqlite3 native code.
+ * Rollup plugin which injects path to keytar native code.
  * See DesktopMain.
  */
-export function keytarNativePlugin({ rootDir, platform }, log = console.log.bind(console)) {
+export function keytarNativeBannerPlugin({ rootDir, platform }, log = console.log.bind(console)) {
 	let outputPath
 	return {
 		name: "keytar-native-banner-plugin",
