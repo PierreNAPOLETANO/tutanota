@@ -3,7 +3,7 @@ import { ViewSlider } from "../../gui/nav/ViewSlider.js"
 import { ColumnType, ViewColumn } from "../../gui/base/ViewColumn"
 import { lang } from "../../misc/LanguageViewModel"
 import type { ButtonAttrs } from "../../gui/base/Button.js"
-import { Button, ButtonColor, ButtonType } from "../../gui/base/Button.js"
+import { ButtonColor, ButtonType } from "../../gui/base/Button.js"
 import { isSelectedPrefix } from "../../gui/base/NavButton.js"
 import { Dialog } from "../../gui/base/Dialog"
 import { FeatureType, Keys, MailFolderType } from "../../api/common/TutanotaConstants"
@@ -127,7 +127,18 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		this.folderColumn = this.createFolderColumn(null, vnode.attrs.drawerAttrs)
 		this.listColumn = new ViewColumn(
 			{
-				view: () => m(".list-column", [this.cache.mailList ? m(this.cache.mailList, { mailView: this }) : null]),
+				view: () =>
+					m(".list-column.flex.col.fill-absolute", [
+						styles.isUsingBottomNavigation()
+							? m(locator.header, {
+									headerView: this.renderHeaderView(),
+									rightView: this.renderHeaderRightView(),
+									viewSlider: this.viewSlider,
+									...vnode.attrs.header,
+							  })
+							: null,
+						m(".flex-grow.rel", this.cache.mailList ? m(this.cache.mailList, { mailView: this }) : null),
+					]),
 			},
 			ColumnType.Background,
 			size.second_col_min_width,
@@ -258,7 +269,9 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 				},
 			},
 			m(this.viewSlider, {
-				header: m(Header, {
+				header: styles.isUsingBottomNavigation()
+					? null
+					: m(Header, {
 					headerView: this.renderHeaderView(),
 					rightView: this.renderHeaderRightView(),
 					viewSlider: this.viewSlider,
@@ -344,11 +357,11 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		}
 		return isNewMailActionAvailable()
 			? [
-				m(IconButton, {
-					title: "more_label",
-					click: noOp,
-					icon: Icons.More,
-				}),
+					m(IconButton, {
+						title: "more_label",
+						click: noOp,
+						icon: Icons.More,
+					}),
 					m(IconButton, {
 						title: "newMail_action",
 						click: () => this.showNewMailDialog().catch(ofClass(PermissionError, noOp)),

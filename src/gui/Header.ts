@@ -313,6 +313,6 @@ function isNotTemporary(logins: LoginController): boolean {
 	return logins.isUserLoggedIn() && logins.getUserController().sessionType !== SessionType.Temporary
 }
 
-const MobileHeader = pureComponent(({ left, center, right }: { left: Children; center: Children; right: Children }) => {
+export const MobileHeader = pureComponent(({ left, center, right }: { left: Children; center: Children; right: Children }) => {
 	return m(".flex.items-center", [left ?? null, m(".flex-grow.flex.items-center", center), right ?? null])
 })
