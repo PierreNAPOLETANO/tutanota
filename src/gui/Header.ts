@@ -13,7 +13,7 @@ import { CALENDAR_PREFIX, CONTACTS_PREFIX, MAIL_PREFIX, navButtonRoutes } from "
 import { AriaLandmarks, landmarkAttrs } from "./AriaUtils.js"
 import type { ViewSlider } from "./nav/ViewSlider.js"
 import { assertMainOrNode } from "../api/common/Env.js"
-import { OfflineIndicatorDesktop } from "./base/OfflineIndicator.js"
+import { OfflineIndicatorDesktop, OfflineIndicatorMobile } from "./base/OfflineIndicator.js"
 import { OfflineIndicatorViewModel } from "./base/OfflineIndicatorViewModel.js"
 import { CounterBadge } from "./base/CounterBadge.js"
 import { SessionType } from "../api/common/SessionType.js"
@@ -22,6 +22,7 @@ import { LoginController } from "../api/main/LoginController.js"
 import { locator } from "../api/main/MainLocator.js"
 import { IconButton } from "./base/IconButton.js"
 import { pureComponent } from "./base/PureComponent.js"
+import { ProgressBar } from "./base/ProgressBar.js"
 
 const LogoutPath = "/login?noAutoLogin=true"
 export const LogoutUrl: string = window.location.hash.startsWith("#mail") ? "/ext?noAutoLogin=true" + location.hash : LogoutPath
@@ -50,42 +51,20 @@ export class Header implements ClassComponent<HeaderAttrs> {
 	view({ attrs }: Vnode<HeaderAttrs>): Children {
 		// Do not return undefined if headerView is not present
 		const injectedView = attrs.headerView
-		if (styles.isUsingBottomNavigation()) {
-			return m(
-				".header-nav",
-				m(MobileHeader, {
-					left: m(IconButton, {
-						// FIXME
-						title: () => "Menu",
-						icon: this.isBackButtonVisible(attrs) ? BootIcons.Back : BootIcons.MoreVertical,
-						click: () => {
-							if (!attrs.handleBackPress?.()) {
-								attrs.viewSlider?.focusPreviousColumn()
-							}
-						},
-					}),
-					// FIXME
-					center: m(".font-weight-600", "Some text"),
-					right: attrs.rightView ?? null,
-				}),
-			)
-		} else {
-			return m("")
-		}
-		// return m(".header-nav.overflow-hidden.flex.items-end.flex-center", [
-		// 	isNotTemporary(locator.logins) ? m(ProgressBar, { progress: attrs.offlineIndicatorModel.getProgress() }) : null,
-		// 	injectedView
-		// 		? // Make sure this wrapper takes up the full height like the things inside it expect
-		// 		  m(".flex-grow.height-100p", injectedView)
-		// 		: [this.renderLeftContent(attrs), this.renderCenterContent(attrs), this.renderRightContent(attrs)],
-		// 	styles.isUsingBottomNavigation() &&
-		// 	locator.logins.isAtLeastPartiallyLoggedIn() &&
-		// 	!attrs.centerContent &&
-		// 	!injectedView &&
-		// 	isNotTemporary(locator.logins)
-		// 		? m(OfflineIndicatorMobile, attrs.offlineIndicatorModel.getCurrentAttrs())
-		// 		: null,
-		// ])
+		return m(".header-nav.overflow-hidden.flex.items-end.flex-center", [
+			isNotTemporary(locator.logins) ? m(ProgressBar, { progress: attrs.offlineIndicatorModel.getProgress() }) : null,
+			injectedView
+				? // Make sure this wrapper takes up the full height like the things inside it expect
+				  m(".flex-grow.height-100p", injectedView)
+				: [this.renderLeftContent(attrs), this.renderCenterContent(attrs), this.renderRightContent(attrs)],
+			styles.isUsingBottomNavigation() &&
+			locator.logins.isAtLeastPartiallyLoggedIn() &&
+			!attrs.centerContent &&
+			!injectedView &&
+			isNotTemporary(locator.logins)
+				? m(OfflineIndicatorMobile, attrs.offlineIndicatorModel.getCurrentAttrs())
+				: null,
+		])
 	}
 
 	oncreate(): void {
@@ -312,7 +291,3 @@ export class Header implements ClassComponent<HeaderAttrs> {
 function isNotTemporary(logins: LoginController): boolean {
 	return logins.isUserLoggedIn() && logins.getUserController().sessionType !== SessionType.Temporary
 }
-
-export const MobileHeader = pureComponent(({ left, center, right }: { left: Children; center: Children; right: Children }) => {
-	return m(".flex.items-center", [left ?? null, m(".flex-grow.flex.items-center", center), right ?? null])
-})

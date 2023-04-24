@@ -30,7 +30,7 @@ import { size } from "../../gui/size"
 import { UserError } from "../../api/main/UserError"
 import { showUserError } from "../../misc/ErrorHandlerImpl"
 import { archiveMails, moveMails, moveToInbox, promptAndDeleteMails, showMoveMailsDropdown } from "./MailGuiUtils"
-import { getElementId, isSameId } from "../../api/common/utils/EntityUtils"
+import { getElementId, isSameId, ListElement } from "../../api/common/utils/EntityUtils"
 import { isNewMailActionAvailable } from "../../gui/nav/NavFunctions"
 import { CancelledError } from "../../api/common/error/CancelledError"
 import Stream from "mithril/stream"
@@ -53,8 +53,15 @@ import { ConversationViewer } from "./ConversationViewer.js"
 import type { DesktopSystemFacade } from "../../native/common/generatedipc/DesktopSystemFacade.js"
 import { CreateMailViewerOptions } from "./MailViewer.js"
 import { IconButton } from "../../gui/base/IconButton.js"
+import { BackgroundColumnLayout } from "../../gui/BackgroundColumnLayout.js"
+import { List, VirtualRow } from "../../gui/base/List.js"
 
 assertMainOrNode()
+
+// the same pattern will repeat for every column with a list: if it's mobile layout, use header otherwise use toolbar
+// variant 1: we pass the header into each ListView and it decided whether to use it or not
+// variant 2: we inject some kind of header/toolbar into each ListView and it just renders it
+// variant 3: we wrap each ListView in some sort of container it is oblivious to the fact that something is displayed above it
 
 /** State persisted between re-creations. */
 export interface MailViewCache {
@@ -128,17 +135,21 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		this.listColumn = new ViewColumn(
 			{
 				view: () =>
-					m(".list-column.flex.col.fill-absolute", [
-						styles.isUsingBottomNavigation()
-							? m(locator.header, {
-									headerView: this.renderHeaderView(),
-									rightView: this.renderHeaderRightView(),
-									viewSlider: this.viewSlider,
-									...vnode.attrs.header,
-							  })
-							: null,
-						m(".flex-grow.rel", this.cache.mailList ? m(this.cache.mailList, { mailView: this }) : null),
-					]),
+					m(BackgroundColumnLayout, {
+						headerAttrs: () => ({
+							// headerView: this.renderHeaderView(),
+							// rightView: this.renderHeaderRightView(),
+							// viewSlider: this.viewSlider,
+							// ...vnode.attrs.header,
+						}),
+						viewSlider: this.viewSlider,
+						desktopToolbar: () => this.renderToolbar(),
+						columnLayout: this.cache.mailList ? m(this.cache.mailList, { mailView: this }) : null,
+						columnType: "first",
+						// FIXME
+						mobileActions: () => [],
+						mobileRightmostButton: () => this.renderHeaderRightView(),
+					}),
 			},
 			ColumnType.Background,
 			size.second_col_min_width,
@@ -161,29 +172,21 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		this.mailColumn = new ViewColumn(
 			{
 				view: () => {
-					return m(
-						".mail",
-						this.conversationViewModel != null
-							? m(ConversationViewer, {
-									// Re-create the whole viewer and its vnode tree if email has changed
-									key: getElementId(this.conversationViewModel.primaryMail),
-									viewModel: this.conversationViewModel,
-							  })
-							: m(MultiMailViewer, {
-									selectedEntities: this.cache.mailList?.list.getSelectedEntities() ?? [],
-									selectNone: () => {
-										this.cache.mailList?.list.selectNone()
-									},
-									loadAll: () => this.loadAll(),
-									stopLoadAll: () => (this.loadingAllForMailList = null),
-									loadingAll:
-										this.loadingAllForMailList != null && this.loadingAllForMailList === this.cache.mailList?.listId
-											? "loading"
-											: this.cache.mailList?.list.isLoadedCompletely()
-											? "loaded"
-											: "can_load",
-							  }),
-					)
+					return m(BackgroundColumnLayout, {
+						headerAttrs: () => ({
+							// headerView: this.renderHeaderView(),
+							// rightView: this.renderHeaderRightView(),
+							// viewSlider: this.viewSlider,
+							// ...vnode.attrs.header,
+						}),
+						viewSlider: this.viewSlider,
+						desktopToolbar: () => this.renderToolbar(),
+						columnLayout: this.renderViewerContent(),
+						columnType: "other",
+						// FIXME
+						mobileActions: () => [],
+						mobileRightmostButton: () => this.renderHeaderRightView(),
+					})
 				},
 			},
 			ColumnType.Background,
@@ -231,6 +234,32 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		}
 	}
 
+	private renderViewerContent() {
+		return m(
+			".mail",
+			this.conversationViewModel != null
+				? m(ConversationViewer, {
+						// Re-create the whole viewer and its vnode tree if email has changed
+						key: getElementId(this.conversationViewModel.primaryMail),
+						viewModel: this.conversationViewModel,
+				  })
+				: m(MultiMailViewer, {
+						selectedEntities: this.cache.mailList?.list.getSelectedEntities() ?? [],
+						selectNone: () => {
+							this.cache.mailList?.list.selectNone()
+						},
+						loadAll: () => this.loadAll(),
+						stopLoadAll: () => (this.loadingAllForMailList = null),
+						loadingAll:
+							this.loadingAllForMailList != null && this.loadingAllForMailList === this.cache.mailList?.listId
+								? "loading"
+								: this.cache.mailList?.list.isLoadedCompletely()
+								? "loaded"
+								: "can_load",
+				  }),
+		)
+	}
+
 	view({ attrs }: Vnode<MailViewAttrs>): Children {
 		return m(
 			"#mail.main-view",
@@ -272,15 +301,15 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 				header: styles.isUsingBottomNavigation()
 					? null
 					: m(Header, {
-					headerView: this.renderHeaderView(),
-					rightView: this.renderHeaderRightView(),
-					viewSlider: this.viewSlider,
-					searchBar: () =>
-						m(searchBar, {
-							placeholder: lang.get("searchEmails_placeholder"),
-						}),
-					...attrs.header,
-				}),
+							headerView: this.renderHeaderView(),
+							rightView: this.renderHeaderRightView(),
+							viewSlider: this.viewSlider,
+							searchBar: () =>
+								m(searchBar, {
+									placeholder: lang.get("searchEmails_placeholder"),
+								}),
+							...attrs.header,
+					  }),
 				bottomNav:
 					styles.isSingleColumnLayout() && this.viewSlider.focusedColumn === this.mailColumn && this.conversationViewModel
 						? m(MobileMailActionBar, { viewModel: this.conversationViewModel.primaryViewModel() })
@@ -348,20 +377,8 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 	}
 
 	private renderHeaderRightView(): Children {
-		const openMailButtonAttrs: ButtonAttrs = {
-			label: "newMail_action",
-			click: () => this.showNewMailDialog().catch(ofClass(PermissionError, noOp)),
-			type: ButtonType.Action,
-			icon: () => Icons.PencilSquare,
-			colors: ButtonColor.Header,
-		}
 		return isNewMailActionAvailable()
 			? [
-					m(IconButton, {
-						title: "more_label",
-						click: noOp,
-						icon: Icons.More,
-					}),
 					m(IconButton, {
 						title: "newMail_action",
 						click: () => this.showNewMailDialog().catch(ofClass(PermissionError, noOp)),
@@ -897,5 +914,30 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 	private async showFolderAddEditDialog(mailGroupId: Id, folder: MailFolder | null, parentFolder: MailFolder | null) {
 		const mailboxDetail = await locator.mailModel.getMailboxDetailsForMailGroup(mailGroupId)
 		await showEditFolderDialog(mailboxDetail, folder, parentFolder)
+	}
+
+	private renderToolbar(): Children {
+		return m(".flex.pt-xs.pb-xs.items-center.list-border-bottom", [
+			// matching MailRow spacing here
+			m(".flex.items-center.pl-s.mlr.button-height", this.cache.mailList ? this.renderSelectAll(this.cache.mailList.list) : null),
+		])
+	}
+
+	private renderSelectAll(list: List<ListElement, VirtualRow<ListElement>>) {
+		return m("input.checkbox", {
+			type: "checkbox",
+			title: lang.get("selectAllLoaded_action"),
+			// I'm not sure this is the best condition but it will do for now
+			checked: list.isAllSelected(),
+			onchange: ({ target }: Event) => this.changeSelectAll(list, (target as HTMLInputElement).checked),
+		})
+	}
+
+	private changeSelectAll(list: List<ListElement, VirtualRow<ListElement>>, selectAll: boolean): void {
+		if (selectAll) {
+			list.selectAll()
+		} else {
+			list.selectNone()
+		}
 	}
 }
