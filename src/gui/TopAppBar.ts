@@ -5,10 +5,11 @@ export interface TopAppBarAttrs {
 	left?: Children
 	center?: Children
 	right?: Children
+	injections?: Children
 }
 
-export const TopAppBar = pureComponent(({ left, center, right }: TopAppBarAttrs) => {
-	return m(".flex.items-center", [left ?? null, m(".flex-grow.flex.items-center", center ?? null), right ?? null])
+export const TopAppBar = pureComponent(({ left, center, right, injections }: TopAppBarAttrs) => {
+	return m(".flex.items-center.rel", [left ?? null, m(".flex-grow.flex.items-center", center ?? null), right ?? null, injections ?? null])
 })
 
 // use cases

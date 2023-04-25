@@ -4,12 +4,18 @@ import { TopAppBar } from "./TopAppBar.js"
 import { IconButton } from "./base/IconButton.js"
 import { BootIcons } from "./base/icons/BootIcons.js"
 import { ViewSlider } from "./nav/ViewSlider.js"
+import { OfflineIndicatorMobile } from "./base/OfflineIndicator.js"
+import { OfflineIndicatorViewModel } from "./base/OfflineIndicatorViewModel.js"
+import { NBSP } from "@tutao/tutanota-utils"
+import { ProgressBar } from "./base/ProgressBar.js"
 
 export interface MobileHeaderAttrs {
 	viewSlider: ViewSlider
 	columnType: "first" | "other"
 	mobileActions: Children
 	mobileRightmostButton: () => Children
+	title?: string
+	offlineIndicatorModel: OfflineIndicatorViewModel
 }
 
 export class MobileHeader implements Component<MobileHeaderAttrs> {
@@ -35,14 +41,16 @@ export class MobileHeader implements Component<MobileHeaderAttrs> {
 					  })
 					: null,
 			// FIXME
-			center: attrs.columnType === "first" || styles.isSingleColumnLayout() ? "Some text" : null,
-			// FIXME
-			right: [
-				attrs.mobileActions,
-				(styles.isSingleColumnLayout() && attrs.columnType === "first") || (!styles.isSingleColumnLayout() && attrs.columnType === "other")
-					? attrs.mobileRightmostButton()
+			center:
+				attrs.columnType === "first" || styles.isSingleColumnLayout()
+					? m(".flex.col.items-start", [
+							m(".font-weight-600", attrs.title ?? NBSP),
+							m(OfflineIndicatorMobile, attrs.offlineIndicatorModel.getCurrentAttrs()),
+					  ])
 					: null,
-			],
+			// FIXME
+			right: [attrs.mobileActions, styles.isSingleColumnLayout() || attrs.columnType === "other" ? attrs.mobileRightmostButton() : null],
+			injections: m(ProgressBar, { progress: attrs.offlineIndicatorModel.getProgress() }),
 		})
 	}
 }

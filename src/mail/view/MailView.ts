@@ -54,6 +54,7 @@ import { BackgroundColumnLayout, MobileHeader } from "../../gui/BackgroundColumn
 import { List, VirtualRow } from "../../gui/base/List.js"
 import { MailViewerActions, MailViewerToolbar } from "./MailViewerToolbar.js"
 import { TopAppBar } from "../../gui/TopAppBar.js"
+import { OfflineIndicatorViewModel } from "../../gui/base/OfflineIndicatorViewModel.js"
 
 assertMainOrNode()
 
@@ -145,7 +146,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 										// FIXME proper checkbox
 										left: this.renderSelectAll(),
 										// FIXME proepr text
-										center: getMailSelectionMessage(mailList.list.getSelectedEntities()),
+										center: m(".font-weight-600", getMailSelectionMessage(mailList.list.getSelectedEntities())),
 										right: m(IconButton, {
 											icon: Icons.Cancel,
 											title: "cancel_action",
@@ -153,11 +154,13 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 										}),
 								  })
 								: m(MobileHeader, {
+										title: this.listColumn.getTitle(),
 										columnType: "first",
 										// FIXME actions?
 										mobileActions: [],
 										mobileRightmostButton: () => this.renderHeaderRightView(),
 										viewSlider: this.viewSlider,
+										offlineIndicatorModel: vnode.attrs.header.offlineIndicatorModel,
 								  }),
 					})
 				},
@@ -185,7 +188,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 				view: () => {
 					const viewModel = this.cache.conversationViewModel
 					if (viewModel) {
-						return this.renderSingleMailViewer(viewModel)
+						return this.renderSingleMailViewer(vnode.attrs.header.offlineIndicatorModel, viewModel)
 					} else {
 						return this.renderMultiMailViewer()
 					}
@@ -236,7 +239,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		}
 	}
 
-	private renderSingleMailViewer(viewModel: ConversationViewModel) {
+	private renderSingleMailViewer(offlineIndicatorViewModel: OfflineIndicatorViewModel, viewModel: ConversationViewModel) {
 		return m(BackgroundColumnLayout, {
 			desktopToolbar: () =>
 				m(MailViewerToolbar, {
@@ -257,6 +260,9 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 								mails: [viewModel.primaryMail],
 						  }),
 					mobileRightmostButton: () => this.renderHeaderRightView(),
+					offlineIndicatorModel: offlineIndicatorViewModel,
+					// FIXME translate
+					title: `${viewModel.conversationItems().length} mails`,
 				}),
 			columnLayout: m(ConversationViewer, {
 				// Re-create the whole viewer and its vnode tree if email has changed
