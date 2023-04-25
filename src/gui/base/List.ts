@@ -1367,6 +1367,12 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 		return this.mobileMultiSelectionActive
 	}
 
+	enterMobileMultiselection() {
+		this.mobileMultiSelectionActive = true
+		this.isInMultiSelect = true
+		this.updateDomElements()
+	}
+
 	isMultiSelectionActive(): boolean {
 		return this.isInMultiSelect
 	}

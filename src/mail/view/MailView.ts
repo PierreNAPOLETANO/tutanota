@@ -157,7 +157,13 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 										title: this.listColumn.getTitle(),
 										columnType: "first",
 										// FIXME actions?
-										mobileActions: [],
+										mobileActions: m(IconButton, {
+											icon: Icons.AddCheckCirle,
+											// FIXME translate
+											title: () => "Select multiple mails",
+											// FIXME do something
+											click: () => mailList?.list.enterMobileMultiselection(),
+										}),
 										mobileRightmostButton: () => this.renderHeaderRightView(),
 										viewSlider: this.viewSlider,
 										offlineIndicatorModel: vnode.attrs.header.offlineIndicatorModel,
@@ -350,6 +356,32 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 				bottomNav:
 					styles.isSingleColumnLayout() && this.viewSlider.focusedColumn === this.mailColumn && this.conversationViewModel
 						? m(MobileMailActionBar, { viewModel: this.conversationViewModel.primaryViewModel() })
+						: // FIXME is this the right condition?
+						styles.isSingleColumnLayout() &&
+						  (this.cache.mailList?.list.isMultiSelectionActive() || this.cache.mailList?.list.isMobileMultiSelectionActionActive())
+						? // FIXME placeholder buttons
+						  m(".bottom-nav.bottom-action-bar.flex.items-center.plr-l.justify-between", [
+								m(IconButton, {
+									icon: Icons.Trash,
+									title: "delete_action",
+									click: noOp,
+								}),
+								m(IconButton, {
+									icon: Icons.Folder,
+									title: "move_action",
+									click: noOp,
+								}),
+								m(IconButton, {
+									icon: Icons.Eye,
+									title: "markRead_action",
+									click: noOp,
+								}),
+								m(IconButton, {
+									icon: Icons.NoEye,
+									title: "markUnread_action",
+									click: noOp,
+								}),
+						  ])
 						: m(BottomNav),
 			}),
 		)
