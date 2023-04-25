@@ -68,13 +68,6 @@ export class ConversationViewer implements Component<ConversationViewerAttrs> {
 		this.doScroll(viewModel, this.lastItems)
 
 		return m(".fill-absolute.nav-bg.flex.col", [
-			m(MailViewerToolbar, {
-				mailModel: viewModel.primaryViewModel().mailModel,
-				mailViewerViewModel: viewModel.primaryViewModel(),
-				mails: [viewModel.primaryMail],
-				readAction: () => viewModel.primaryViewModel().setUnread(false),
-				unreadAction: () => viewModel.primaryViewModel().setUnread(true),
-			}),
 			m(
 				".flex-grow.scroll",
 				{

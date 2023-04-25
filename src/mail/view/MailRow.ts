@@ -6,7 +6,6 @@ import { getSenderOrRecipientHeading, isTutanotaTeamMail } from "../model/MailUt
 import { locator } from "../../api/main/MainLocator"
 import m, { Children } from "mithril"
 import Badge from "../../gui/base/Badge"
-import { px } from "../../gui/size"
 import type { VirtualRow } from "../../gui/base/List"
 import { checkboxOpacity, SelectableRowContainer, setSelectedRowStyle, setVisibility } from "../../gui/SelectableRowContainer.js"
 import { styles } from "../../gui/styles.js"
@@ -68,16 +67,17 @@ export class MailRow implements VirtualRow<Mail> {
 		}
 
 		setVisibility(this.teamLabelDom, isTutanotaTeamMail(mail))
-		this.updateCheckboxVisibility()
+		this.updateCheckboxVisibility(isInMultiSelect)
 
 		checkboxOpacity(this.checkboxDom, selected)
 	}
 
-	private updateCheckboxVisibility() {
-		if (styles.isSingleColumnLayout()) {
-			this.checkboxDom.style.display = "none"
-		} else {
+	private updateCheckboxVisibility(multiselect: boolean) {
+		// this is not perfect as it doersn't animate
+		if (multiselect || styles.isDesktopLayout()) {
 			this.checkboxDom.style.display = ""
+		} else {
+			this.checkboxDom.style.display = "none"
 		}
 	}
 
@@ -110,7 +110,7 @@ export class MailRow implements VirtualRow<Mail> {
 						oncreate: (vnode) => {
 							this.checkboxDom = vnode.dom as HTMLInputElement
 							// doing it right away to avoid visual glitch of it appearing/disappearing
-							this.updateCheckboxVisibility()
+							this.updateCheckboxVisibility(false)
 							checkboxOpacity(this.checkboxDom, false)
 						},
 					}),

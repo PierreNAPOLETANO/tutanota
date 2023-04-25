@@ -21,7 +21,6 @@ import { compareContacts } from "../../contacts/view/ContactGuiUtils"
 import type { SearchResult } from "../../api/worker/search/SearchTypes"
 import type { ListElementEntity } from "../../api/common/EntityTypes"
 import Stream from "mithril/stream"
-import { markMails } from "../../mail/model/MailUtils.js"
 import { ListColumnWrapper } from "../../gui/ListColumnWrapper.js"
 import { styles } from "../../gui/styles.js"
 
@@ -452,7 +451,7 @@ export class SearchListView implements Component {
 			.filter(assertIsEntity2(MailTypeRef))
 
 		if (selectedMails.length > 0) {
-			markMails(locator.entityClient, selectedMails, !selectedMails[0].unread)
+			locator.mailModel.markMails(selectedMails, !selectedMails[0].unread)
 		}
 	}
 

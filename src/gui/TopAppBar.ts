@@ -2,13 +2,13 @@ import { pureComponent } from "./base/PureComponent.js"
 import m, { Children } from "mithril"
 
 export interface TopAppBarAttrs {
-	left: Children
-	center: Children
-	right: Children
+	left?: Children
+	center?: Children
+	right?: Children
 }
 
 export const TopAppBar = pureComponent(({ left, center, right }: TopAppBarAttrs) => {
-	return m(".flex.items-center", [left ?? null, m(".flex-grow.flex.items-center", center), right ?? null])
+	return m(".flex.items-center", [left ?? null, m(".flex-grow.flex.items-center", center ?? null), right ?? null])
 })
 
 // use cases

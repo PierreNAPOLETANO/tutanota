@@ -3,7 +3,7 @@ import { assertMainOrNode, isApp } from "../../api/common/Env"
 import ColumnEmptyMessageBox from "../../gui/base/ColumnEmptyMessageBox"
 import { lang } from "../../misc/LanguageViewModel"
 import { Icons } from "../../gui/base/icons/Icons"
-import { getFolderIcon, getIndentedFolderNameForDropdown, getMoveTargetFolderSystems, markMails } from "../model/MailUtils"
+import { getFolderIcon, getIndentedFolderNameForDropdown, getMoveTargetFolderSystems } from "../model/MailUtils"
 import { FeatureType } from "../../api/common/TutanotaConstants"
 import { BootIcons } from "../../gui/base/icons/BootIcons"
 import { theme } from "../../gui/theme"
@@ -14,7 +14,6 @@ import { attachDropdown, DropdownButtonAttrs } from "../../gui/base/Dropdown.js"
 import { exportMails } from "../export/Exporter"
 import { showProgressDialog } from "../../gui/dialogs/ProgressDialog"
 import { IconButtonAttrs } from "../../gui/base/IconButton.js"
-import { MailViewerToolbar } from "./MailViewerToolbar.js"
 import { Button, ButtonType } from "../../gui/base/Button.js"
 import { progressIcon } from "../../gui/base/Icon.js"
 
@@ -33,21 +32,14 @@ export type MultiMailViewerAttrs = {
  */
 export class MultiMailViewer implements Component<MultiMailViewerAttrs> {
 	view({ attrs }: Vnode<MultiMailViewerAttrs>) {
-		const { selectedEntities, selectNone, loadAll, loadingAll, stopLoadAll } = attrs
+		const { selectedEntities } = attrs
 		return [
 			m(
 				".flex.col.fill-absolute",
-				m(MailViewerToolbar, {
-					mailModel: locator.mailModel,
-					mails: selectedEntities,
-					selectNone: selectNone,
-					readAction: () => markMails(locator.entityClient, selectedEntities, false),
-					unreadAction: () => markMails(locator.entityClient, selectedEntities, true),
-				}),
 				m(
 					".flex-grow.rel.overflow-hidden",
 					m(ColumnEmptyMessageBox, {
-						message: () => this.getMailSelectionMessage(selectedEntities),
+						message: () => getMailSelectionMessage(selectedEntities),
 						icon: BootIcons.Mail,
 						color: theme.content_message_bg,
 						backgroundColor: theme.navigation_bg,
@@ -90,20 +82,6 @@ export class MultiMailViewer implements Component<MultiMailViewerAttrs> {
 						  })
 						: null,
 			  ])
-	}
-
-	private getMailSelectionMessage(selectedEntities: Array<Mail>): string {
-		let nbrOfSelectedMails = selectedEntities.length
-
-		if (nbrOfSelectedMails === 0) {
-			return lang.get("noMail_msg")
-		} else if (nbrOfSelectedMails === 1) {
-			return lang.get("oneMailSelected_msg")
-		} else {
-			return lang.get("nbrOfMailsSelected_msg", {
-				"{1}": nbrOfSelectedMails,
-			})
-		}
 	}
 }
 
@@ -158,12 +136,12 @@ export function getMultiMailViewerActionButtonAttrs(selectedEntities: Array<Mail
 			childAttrs: () => [
 				{
 					label: "markUnread_action",
-					click: actionBarAction(() => markMails(locator.entityClient, selectedEntities, true)),
+					click: actionBarAction(() => locator.mailModel.markMails(selectedEntities, true)),
 					icon: Icons.NoEye,
 				},
 				{
 					label: "markRead_action",
-					click: actionBarAction(() => markMails(locator.entityClient, selectedEntities, false)),
+					click: actionBarAction(() => locator.mailModel.markMails(selectedEntities, false)),
 					icon: Icons.Eye,
 				},
 				!isApp() && !locator.logins.isEnabled(FeatureType.DisableMailExport)
@@ -202,4 +180,18 @@ async function getMoveMailButtonAttrs(selectedEntities: Mail[], selectNone: () =
 			icon: getFolderIcon(folderInfo.folder),
 		}
 	})
+}
+
+export function getMailSelectionMessage(selectedEntities: ReadonlyArray<Mail>): string {
+	let nbrOfSelectedMails = selectedEntities.length
+
+	if (nbrOfSelectedMails === 0) {
+		return lang.get("noMail_msg")
+	} else if (nbrOfSelectedMails === 1) {
+		return lang.get("oneMailSelected_msg")
+	} else {
+		return lang.get("nbrOfMailsSelected_msg", {
+			"{1}": nbrOfSelectedMails,
+		})
+	}
 }
