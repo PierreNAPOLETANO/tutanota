@@ -51,7 +51,7 @@ export class ImapSyncSessionProcess {
 			tls: {
 				rejectUnauthorized: false, // TODO deactivate after testing
 			},
-			logger: true,
+			logger: false,
 			auth: {
 				user: imapAccount.username,
 				pass: imapAccount.password,
@@ -69,7 +69,7 @@ export class ImapSyncSessionProcess {
 			}
 		} catch (error) {
 			// if the error response includes NO, we most probably exceeded the maximum amount of allowed connections
-			if (error.response.includes("NO")) { // TODO better check if authentication failed?
+			if (error.includes("NO")) { // TODO better check if authentication failed?
 				this.state = SyncSessionProcessState.CONNECTION_FAILED_NO
 			} else {
 				this.state = SyncSessionProcessState.CONNECTION_FAILED_UNKOWN

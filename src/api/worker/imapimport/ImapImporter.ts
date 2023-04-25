@@ -1,17 +1,19 @@
 import { AdSyncEventType } from "../../../desktop/imapimport/adsync/AdSyncEventListener"
-import { ImportImapAccountSyncState, ImportImapAttachmentHashToIdTypeRef, ImportImapFolderSyncState, MailFolder } from "../../entities/tutanota/TypeRefs.js"
+import { ImportImapAccountSyncState, ImportImapFolderSyncState, MailFolder } from "../../entities/tutanota/TypeRefs.js"
 import { ImportImapFacade } from "../facades/lazy/ImportImapFacade.js"
-import { ImportMailFacade } from "../facades/lazy/ImportMailFacade.js"
+import { ImapImportDataFile, ImapImportTutanotaFileId, ImportMailFacade } from "../facades/lazy/ImportMailFacade.js"
 import { ImapImportState, ImportState } from "./ImapImportState.js"
 import { getFolderSyncStateForMailboxPath, imapMailToImportMailParams, importImapAccountToImapAccount } from "./ImapImportUtils.js"
 import { ImapMailboxState, ImapMailIds, ImapSyncState } from "../../../desktop/imapimport/adsync/ImapSyncState.js"
 import { ImapMailbox, ImapMailboxStatus } from "../../../desktop/imapimport/adsync/imapmail/ImapMailbox.js"
 import { ProgrammingError } from "../../common/error/ProgrammingError.js"
-import { ImapMail } from "../../../desktop/imapimport/adsync/imapmail/ImapMail.js"
+import { ImapMail, ImapMailAttachment } from "../../../desktop/imapimport/adsync/imapmail/ImapMail.js"
 import { ImapError } from "../../../desktop/imapimport/adsync/imapmail/ImapError.js"
 import { ImapImportSystemFacade } from "../../../native/common/generatedipc/ImapImportSystemFacade.js"
 import { ImapImportFacade } from "../../../native/common/generatedipc/ImapImportFacade.js"
-import { EntityUpdateData, isUpdateForTypeRef } from "../../main/EventController.js"
+import { uint8ArrayToString } from "@tutao/tutanota-utils"
+import { sha256Hash } from "@tutao/tutanota-crypto"
+import { MaybePromise } from "rollup"
 
 export interface InitializeImapImportParams {
 	host: string
@@ -27,7 +29,7 @@ export class ImapImporter implements ImapImportFacade {
 	private imapImportState: ImapImportState = new ImapImportState(ImportState.NOT_INITIALIZED)
 	private importImapAccountSyncState: ImportImapAccountSyncState | null = null
 	private importImapFolderSyncStates?: ImportImapFolderSyncState[]
-	private importedImapAttachmentHashToIdMap?: Map<string, IdTuple>
+	private importedImapAttachmentHashToIdMap?: Map<string, MaybePromise<IdTuple | undefined>>
 
 	// TODO remove after evaluation
 	private testMailCounter = 0
@@ -115,7 +117,11 @@ export class ImapImporter implements ImapImportFacade {
 		return this.importImapFacade.getImportImapAccountSyncState()
 	}
 
-	async loadAllImportImapFolderSyncStates(importImapFolderSyncStateListId: Id): Promise<ImportImapFolderSyncState[]> {
+	loadImapImportState(): ImapImportState {
+		return this.imapImportState
+	}
+
+	private async loadAllImportImapFolderSyncStates(importImapFolderSyncStateListId: Id): Promise<ImportImapFolderSyncState[]> {
 		if (this.importImapAccountSyncState == null) {
 			throw new ProgrammingError("ImportImapAccountSyncState not initialized!")
 		}
@@ -151,12 +157,12 @@ export class ImapImporter implements ImapImportFacade {
 		return imapMailboxStates
 	}
 
-	private async getImportedImapAttachmentHashToIdMap(): Promise<Map<string, IdTuple>> {
+	private async getImportedImapAttachmentHashToIdMap(): Promise<Map<string, MaybePromise<IdTuple>>> {
 		if (this.importImapAccountSyncState == null) {
 			throw new ProgrammingError("ImportImapAccountSyncState not initialized!")
 		}
 
-		let importedImapAttachmentHashToIdMap = new Map<string, IdTuple>()
+		let importedImapAttachmentHashToIdMap = new Map<string, MaybePromise<IdTuple>>()
 		let importedImapAttachmentHashToIdMapList = await this.importImapFacade.getImportedImapAttachmentHashToIdMapList(
 			this.importImapAccountSyncState.importedImapAttachmentHashToIdMap,
 		)
@@ -168,6 +174,43 @@ export class ImapImporter implements ImapImportFacade {
 		})
 
 		return importedImapAttachmentHashToIdMap
+	}
+
+	private async performAttachmentDeduplication(imapMailAttachments: ImapMailAttachment[]) {
+		let deduplicatedAttachments = imapMailAttachments.map(async (imapMailAttachment) => {
+			// calculate fileHash to perform IMAP import attachment de-duplication
+			let fileHash = uint8ArrayToString("utf-8", sha256Hash(imapMailAttachment.content))
+
+			if (this.importedImapAttachmentHashToIdMap?.has(fileHash)) {
+				let attachmentId = await this.importedImapAttachmentHashToIdMap.get(fileHash)
+				if (attachmentId) {
+					let imapImportTutanotaFileId: ImapImportTutanotaFileId = {
+						_type: "ImapImportTutanotaFileId",
+						_id: attachmentId,
+					}
+					return imapImportTutanotaFileId
+				}
+			}
+
+			let deferredAttachmentId: Promise<IdTuple | undefined> = new Promise(async (resolve) => {
+				this.importedImapAttachmentHashToIdMap = await this.getImportedImapAttachmentHashToIdMap()
+				resolve(this.importedImapAttachmentHashToIdMap.get(fileHash))
+			})
+
+			this.importedImapAttachmentHashToIdMap?.set(fileHash, deferredAttachmentId)
+			let importDataFile: ImapImportDataFile = {
+				_type: "DataFile",
+				name: imapMailAttachment.filename ?? imapMailAttachment.cid + Date.now().toString(), // TODO better to use hash?
+				data: imapMailAttachment.content,
+				size: imapMailAttachment.size,
+				mimeType: imapMailAttachment.contentType,
+				cid: imapMailAttachment.cid,
+				fileHash: fileHash,
+			}
+			return importDataFile
+		})
+
+		return Promise.all(deduplicatedAttachments)
 	}
 
 	async onMailbox(imapMailbox: ImapMailbox, eventType: AdSyncEventType): Promise<void> {
@@ -220,9 +263,9 @@ export class ImapImporter implements ImapImportFacade {
 		return Promise.resolve()
 	}
 
-	onMail(imapMail: ImapMail, eventType: AdSyncEventType): Promise<void> {
-		console.log("onMail")
-		console.log(imapMail)
+	async onMail(imapMail: ImapMail, eventType: AdSyncEventType): Promise<void> {
+		//console.log("onMail")
+		//console.log(imapMail)
 
 		// TODO remove after evaluation
 		this.testMailCounter += 1
@@ -231,13 +274,10 @@ export class ImapImporter implements ImapImportFacade {
 			throw new ProgrammingError("onMail event received but importImapFolderSyncStates not initialized!")
 		}
 
-		if (this.importedImapAttachmentHashToIdMap === undefined) {
-			throw new ProgrammingError("onMail event received but importedImapAttachmentHashToIdMap not initialized!")
-		}
-
 		let folderSyncState = getFolderSyncStateForMailboxPath(imapMail.belongsToMailbox.path, this.importImapFolderSyncStates)
 		if (folderSyncState) {
-			let importMailParams = imapMailToImportMailParams(imapMail, folderSyncState._id, this.importedImapAttachmentHashToIdMap)
+			let deduplicatedAttachments = imapMail.attachments ? await this.performAttachmentDeduplication(imapMail.attachments) : []
+			let importMailParams = imapMailToImportMailParams(imapMail, folderSyncState._id, deduplicatedAttachments)
 
 			switch (eventType) {
 				case AdSyncEventType.CREATE:
@@ -283,24 +323,5 @@ export class ImapImporter implements ImapImportFacade {
 		console.log(imapError)
 
 		return Promise.resolve()
-	}
-
-	loadImapImportState(): ImapImportState {
-		return this.imapImportState
-	}
-
-	// TODO make this work
-	async entityEventsReceived(updates: ReadonlyArray<EntityUpdateData>): Promise<void> {
-		for (const update of updates) {
-			if (isUpdateForTypeRef(ImportImapAttachmentHashToIdTypeRef, update)) {
-				if (this.importImapAccountSyncState) {
-					let importedImapAttachmentToIdMap = await this.importImapFacade.getImportedImapAttachmentHashToIdMap([
-						update.instanceListId,
-						update.instanceListId,
-					])
-					this.importedImapAttachmentHashToIdMap?.set(importedImapAttachmentToIdMap.imapAttachmentHash, importedImapAttachmentToIdMap.attachment)
-				}
-			}
-		}
 	}
 }

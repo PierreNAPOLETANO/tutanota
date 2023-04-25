@@ -34,8 +34,12 @@ export class ImapImportSettingsViewer implements UpdatableSettingsViewer {
 		this.imapAccountPort = stream<string>("")
 		this.imapAccountUsername = stream<string>("")
 		this.stars = stream<string>("")
+
 		this.importedMailCount = stream<string>("0")
+		this.importedMailCount.map(m.redraw)
+
 		this.imapImportState = stream(new ImapImportState(ImportState.NOT_INITIALIZED))
+		this.imapImportState.map(m.redraw)
 	}
 
 	oninit() {
@@ -205,6 +209,7 @@ export class ImapImportSettingsViewer implements UpdatableSettingsViewer {
 		m.redraw()
 	}
 
+	// TODO we should maybe track the importState on the server to allow the UI to be updated.
 	async entityEventsReceived(updates: ReadonlyArray<EntityUpdateData>): Promise<void> {
 		for (const update of updates) {
 			if (isUpdateForTypeRef(ImportImapAccountSyncStateTypeRef, update)) {

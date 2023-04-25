@@ -34,8 +34,8 @@ export interface ImapImportTutanotaFileId {
 	_id: IdTuple
 }
 
-export type ImapImportDataFile = DataFile & { fileHash: string }
-export type ImapImportFileReference = FileReference & { fileHash: string }
+export type ImapImportDataFile = DataFile & { fileHash: string | null }
+export type ImapImportFileReference = FileReference & { fileHash: string | null }
 
 export type ImapImportAttachment = ImapImportTutanotaFileId | ImapImportDataFile | ImapImportFileReference
 export type ImapImportAttachments = ReadonlyArray<ImapImportTutanotaFileId | ImapImportDataFile | ImapImportFileReference>
@@ -204,25 +204,25 @@ export function referenceToImportMailDataMailReference(reference: string): Impor
 	})
 }
 
-function draftAttachmentToImportAttachment(draftAttachment: DraftAttachment, newFileHash: string, mailGroupKey: Aes128Key): ImportAttachment {
+function draftAttachmentToImportAttachment(draftAttachment: DraftAttachment, newFileHash: string | null, mailGroupKey: Aes128Key): ImportAttachment {
 	let importAttachment = createImportAttachment()
 	importAttachment.existingFile = draftAttachment.existingFile
 	importAttachment.ownerEncFileSessionKey = draftAttachment.ownerEncFileSessionKey
 
 	let newFile = draftAttachment.newFile
 	if (newFile != null) {
-		let patchedNewFile = createNewImportAttachment()
+		let newImportAttachment = createNewImportAttachment()
 
 		const fileHashSessionKey = aes128RandomKey()
 
-		patchedNewFile.encFileHash = encryptString(fileHashSessionKey, newFileHash)
-		patchedNewFile.ownerEncFileHashSessionKey = encryptKey(mailGroupKey, fileHashSessionKey)
-		patchedNewFile.encFileName = newFile.encFileName
-		patchedNewFile.encCid = newFile.encCid
-		patchedNewFile.encMimeType = newFile.encMimeType
-		patchedNewFile.referenceTokens = newFile.referenceTokens
+		newImportAttachment.encFileHash = newFileHash ? encryptString(fileHashSessionKey, newFileHash) : null
+		newImportAttachment.ownerEncFileHashSessionKey = newFileHash ? encryptKey(mailGroupKey, fileHashSessionKey) : null
+		newImportAttachment.encFileName = newFile.encFileName
+		newImportAttachment.encCid = newFile.encCid
+		newImportAttachment.encMimeType = newFile.encMimeType
+		newImportAttachment.referenceTokens = newFile.referenceTokens
 
-		importAttachment.newFile = patchedNewFile
+		importAttachment.newFile = newImportAttachment
 	}
 
 	return importAttachment

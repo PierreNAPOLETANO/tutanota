@@ -18,6 +18,10 @@ export interface AdSyncConfig {
 	isEnableImapQresync: boolean
 }
 
+// TODO evaluation
+// const impap_conf = JSON.parse(process.env["IMAP_IMPORT_SETTINGS"])
+// impap_conf.value === 3
+
 export class ImapAdSync {
 	private syncSession: ImapSyncSession
 

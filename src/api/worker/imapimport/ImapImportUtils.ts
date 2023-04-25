@@ -5,9 +5,7 @@ import { CalendarMethod, calendarMethodToMailMethod, MailMethod, MailState, Repl
 import { ImapMailbox, ImapMailboxSpecialUse } from "../../../desktop/imapimport/adsync/imapmail/ImapMailbox.js"
 import { PartialRecipient, RecipientList } from "../../common/recipients/Recipient.js"
 import { DataFile } from "../../common/DataFile.js"
-import { sha256Hash } from "@tutao/tutanota-crypto"
-import { ImapImportAttachments, ImapImportDataFile, ImapImportTutanotaFileId, ImportMailParams } from "../facades/lazy/ImportMailFacade.js"
-import { uint8ArrayToString } from "@tutao/tutanota-utils"
+import { ImapImportAttachments, ImapImportDataFile, ImportMailParams } from "../facades/lazy/ImportMailFacade.js"
 
 const TEXT_CALENDAR_MIME_TYPE = "text/calendar"
 const CALENDAR_METHOD_MIME_PARAMETER = "method"
@@ -18,14 +16,8 @@ const IMAP_FLAG_FORWARDED = "$Forwarded"
 
 export function importImapAccountToImapAccount(importImapAccount: ImportImapAccount): ImapAccount {
 	let imapAccount = new ImapAccount(importImapAccount.host, parseInt(importImapAccount.port), importImapAccount.userName)
-
-	if (importImapAccount.password) {
-		imapAccount.password = importImapAccount.password
-	}
-
-	if (importImapAccount.accessToken) {
-		imapAccount.accessToken = importImapAccount.accessToken
-	}
+	imapAccount.password = importImapAccount.password ?? undefined
+	imapAccount.accessToken = importImapAccount.accessToken ?? undefined
 
 	return imapAccount
 }
@@ -40,7 +32,7 @@ export function getFolderSyncStateForMailboxPath(mailboxPath: string, folderSync
 export function imapMailToImportMailParams(
 	imapMail: ImapMail,
 	folderSyncStateId: IdTuple,
-	importedImapAttachmentHashToIdMap: Map<string, IdTuple>,
+	deduplicatedAttachments: ImapImportAttachments | null,
 ): ImportMailParams {
 	let fromMailAddress = imapMail.envelope?.from?.at(0)?.address ?? ""
 	let fromName = imapMail.envelope?.from?.at(0)?.name ?? ""
@@ -48,7 +40,10 @@ export function imapMailToImportMailParams(
 
 	let differentEnvelopeSender = senderMailAddress != fromMailAddress ? senderMailAddress : null
 
-	let attachments = imapMail.attachments ? importAttachmentsFromImapMailAttachments(imapMail.attachments, importedImapAttachmentHashToIdMap) : null
+	let attachments = deduplicatedAttachments
+	if (!attachments) {
+		attachments = imapMail.attachments ? importAttachmentsFromImapMailAttachments(imapMail.attachments) : null
+	}
 
 	return {
 		subject: imapMail.envelope?.subject ?? "",
@@ -75,6 +70,23 @@ export function imapMailToImportMailParams(
 		imapModSeq: imapMail.modSeq ?? null,
 		imapFolderSyncState: folderSyncStateId,
 	}
+}
+
+function importAttachmentsFromImapMailAttachments(
+	imapMailAttachments: ImapMailAttachment[]
+): ImapImportDataFile[] {
+	return imapMailAttachments.map((imapMailAttachment) => {
+		let imapImportDataFile: ImapImportDataFile = {
+			_type: "DataFile",
+			name: imapMailAttachment.filename ?? imapMailAttachment.cid + Date.now().toString(),
+			data: imapMailAttachment.content,
+			size: imapMailAttachment.size,
+			mimeType: imapMailAttachment.contentType,
+			cid: imapMailAttachment.cid,
+			fileHash: null,
+		}
+		return imapImportDataFile
+	})
 }
 
 function mailStateFromImapMailbox(imapMailbox: ImapMailbox): MailState {
@@ -130,34 +142,5 @@ function recipientsFromImapMailAddresses(imapMailAddresses: ImapMailAddress[]): 
 			name: imapMailAddress.name,
 		}
 		return partialRecipient
-	})
-}
-
-function importAttachmentsFromImapMailAttachments(
-	imapMailAttachments: ImapMailAttachment[],
-	importedImapAttachmentHashToIdMap: Map<string, IdTuple>,
-): ImapImportAttachments {
-	return imapMailAttachments.map((imapMailAttachment) => {
-		// calculate fileHash to perform IMAP import attachment de-duplication
-		let fileHash = uint8ArrayToString("utf-8", sha256Hash(imapMailAttachment.content))
-
-		if (importedImapAttachmentHashToIdMap.has(fileHash)) {
-			let imapImportTutanotaFileId: ImapImportTutanotaFileId = {
-				_type: "ImapImportTutanotaFileId",
-				_id: importedImapAttachmentHashToIdMap.get(fileHash)!,
-			}
-			return imapImportTutanotaFileId
-		} else {
-			let importDataFile: ImapImportDataFile = {
-				_type: "DataFile",
-				name: imapMailAttachment.filename ?? "filename", // TODO fix this
-				data: imapMailAttachment.content,
-				size: imapMailAttachment.size,
-				mimeType: imapMailAttachment.contentType,
-				cid: imapMailAttachment.cid,
-				fileHash: fileHash,
-			}
-			return importDataFile
-		}
 	})
 }

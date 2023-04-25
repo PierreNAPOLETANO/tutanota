@@ -110,6 +110,7 @@ export class ImapSyncSession implements SyncSessionEventListener {
 			tls: {
 				rejectUnauthorized: false, // TODO deactivate after testing
 			},
+			logger: false,
 			auth: {
 				user: imapAccount.username,
 				pass: imapAccount.password,
