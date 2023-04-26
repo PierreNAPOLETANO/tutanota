@@ -65,6 +65,7 @@ import { TopLevelAttrs, TopLevelView } from "../TopLevelView.js"
 import { searchBar } from "../search/SearchBar.js"
 import { ReferralSettingsViewer } from "./ReferralSettingsViewer.js"
 import { LoginController } from "../api/main/LoginController.js"
+import { BackgroundColumnLayout, MobileHeader, MobileHeaderAttrs } from "../gui/BackgroundColumnLayout.js"
 
 assertMainOrNode()
 
@@ -262,7 +263,24 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 			{
 				// the CSS improves the situation on devices with notches (no control elements
 				// are concealed), but there's still room for improvement for scrollbars
-				view: () => m(".mlr-safe-inset.fill-absolute", m(this._getCurrentViewer())),
+				view: () =>
+					m(BackgroundColumnLayout, {
+						backgroundColor: theme.list_bg,
+						columnLayout: m(".mlr-safe-inset.fill-absolute", m(this._getCurrentViewer())),
+						mobileHeader: () =>
+							m(MobileHeader, {
+								viewSlider: this.viewSlider,
+								columnType: "first",
+								// FIXME
+								title: "Settings",
+								offlineIndicatorModel: vnode.attrs.header.offlineIndicatorModel,
+								// FIXME
+								actions: [],
+								mobileRightmostButton: () => null,
+							}),
+						// FIXME
+						desktopToolbar: () => null,
+					}),
 			},
 			ColumnType.Background,
 			400,
@@ -271,7 +289,24 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 		)
 		this._settingsDetailsColumn = new ViewColumn(
 			{
-				view: () => m(".mlr-safe-inset.fill-absolute", this.detailsViewer ? this.detailsViewer.renderView() : m("")),
+				view: () =>
+					m(BackgroundColumnLayout, {
+						backgroundColor: theme.content_bg,
+						columnLayout: m(".mlr-safe-inset.fill-absolute", this.detailsViewer ? this.detailsViewer.renderView() : m("")),
+						mobileHeader: () =>
+							m(MobileHeader, {
+								viewSlider: this.viewSlider,
+								columnType: "other",
+								// FIXME
+								title: "",
+								offlineIndicatorModel: vnode.attrs.header.offlineIndicatorModel,
+								// FIXME
+								actions: [],
+								mobileRightmostButton: () => null,
+							}),
+						// FIXME
+						desktopToolbar: () => null,
+					}),
 			},
 			ColumnType.Background,
 			600,
