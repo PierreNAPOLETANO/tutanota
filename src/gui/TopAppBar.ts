@@ -9,7 +9,7 @@ export interface TopAppBarAttrs {
 }
 
 export const TopAppBar = pureComponent(({ left, center, right, injections }: TopAppBarAttrs) => {
-	return m(".flex.items-center.rel", [left ?? null, m(".flex-grow.flex.items-center", center ?? null), right ?? null, injections ?? null])
+	return m(".flex.items-center.rel.button-height", [left ?? null, m(".flex-grow.flex.items-center", center ?? null), right ?? null, injections ?? null])
 })
 
 // use cases
