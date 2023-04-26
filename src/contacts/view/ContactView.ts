@@ -130,11 +130,14 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 										columnType: "first",
 										offlineIndicatorModel: vnode.attrs.header.offlineIndicatorModel,
 										title: this.listColumn.getTitle(),
-										actions: m(IconButton, {
-											title: "selectMultiple_action",
-											click: () => this._contactList?.list.enterMobileMultiselection(),
-											icon: Icons.AddCheckCirle,
-										}),
+										actions: m(".flex", [
+											this._contactList ? this.renderSortByButton(this._contactList) : null,
+											m(IconButton, {
+												title: "selectMultiple_action",
+												click: () => this._contactList?.list.enterMobileMultiselection(),
+												icon: Icons.AddCheckCirle,
+											}),
+										]),
 										mobileRightmostButton: () => this.renderHeaderRightView(),
 								  }),
 					}),
@@ -413,6 +416,7 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 			}),
 		)
 	}
+
 	_mergeAction(): Promise<void> {
 		return showProgressDialog(
 			"pleaseWait_msg",
