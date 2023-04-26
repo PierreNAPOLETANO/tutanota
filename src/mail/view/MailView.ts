@@ -157,7 +157,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 								: m(MobileHeader, {
 										title: this.listColumn.getTitle(),
 										columnType: "first",
-										mobileActions: m(IconButton, {
+										actions: m(IconButton, {
 											icon: Icons.AddCheckCirle,
 											title: "selectMultiple_action",
 											click: () => mailList?.list.enterMobileMultiselection(),
@@ -259,7 +259,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 				m(MobileHeader, {
 					viewSlider: this.viewSlider,
 					columnType: "other",
-					mobileActions: styles.isSingleColumnLayout() ? [] : this.mailViewerSingleActions(viewModel),
+					actions: styles.isSingleColumnLayout() ? [] : this.mailViewerSingleActions(viewModel),
 					mobileRightmostButton: () => this.renderHeaderRightView(),
 					offlineIndicatorModel: offlineIndicatorViewModel,
 					// FIXME translate

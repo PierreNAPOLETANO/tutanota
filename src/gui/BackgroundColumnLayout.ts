@@ -12,7 +12,7 @@ import { ProgressBar } from "./base/ProgressBar.js"
 export interface MobileHeaderAttrs {
 	viewSlider: ViewSlider
 	columnType: "first" | "other"
-	mobileActions: Children
+	actions: Children
 	mobileRightmostButton: () => Children
 	title?: string
 	offlineIndicatorModel: OfflineIndicatorViewModel
@@ -48,8 +48,7 @@ export class MobileHeader implements Component<MobileHeaderAttrs> {
 							m(OfflineIndicatorMobile, attrs.offlineIndicatorModel.getCurrentAttrs()),
 					  ])
 					: null,
-			// FIXME
-			right: [attrs.mobileActions, styles.isSingleColumnLayout() || attrs.columnType === "other" ? attrs.mobileRightmostButton() : null],
+			right: [attrs.actions, styles.isSingleColumnLayout() || attrs.columnType === "other" ? attrs.mobileRightmostButton() : null],
 			injections: m(ProgressBar, { progress: attrs.offlineIndicatorModel.getProgress() }),
 		})
 	}

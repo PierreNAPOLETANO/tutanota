@@ -8,14 +8,13 @@ import type { Contact } from "../../api/entities/tutanota/TypeRefs.js"
 import { ContactTypeRef } from "../../api/entities/tutanota/TypeRefs.js"
 import { ContactListView } from "./ContactListView"
 import { lang } from "../../misc/LanguageViewModel"
-import { assertNotNull, clear, flat, isNotNull, neverNull, noOp, ofClass, promiseMap, Thunk, utf8Uint8ArrayToString } from "@tutao/tutanota-utils"
-import { ContactMergeAction, GroupType, Keys, OperationType } from "../../api/common/TutanotaConstants"
+import { clear, isNotNull, neverNull, noOp, ofClass, promiseMap, Thunk } from "@tutao/tutanota-utils"
+import { ContactMergeAction, Keys, OperationType } from "../../api/common/TutanotaConstants"
 import { assertMainOrNode, isApp } from "../../api/common/Env"
 import type { Shortcut } from "../../misc/KeyManager"
 import { keyManager } from "../../misc/KeyManager"
 import { Icons } from "../../gui/base/icons/Icons"
 import { Dialog } from "../../gui/base/Dialog"
-import { vCardFileToVCards, vCardListToContacts } from "../VCardImporter"
 import { LockedError, NotFoundError } from "../../api/common/error/RestError"
 import { getContactSelectionMessage, MultiContactViewer } from "./MultiContactViewer"
 import { BootIcons } from "../../gui/base/icons/BootIcons"
@@ -24,7 +23,6 @@ import { locator } from "../../api/main/MainLocator"
 import { ContactMergeView } from "./ContactMergeView"
 import { getMergeableContacts, mergeContacts } from "../ContactMergeUtils"
 import { exportContacts } from "../VCardExporter"
-import { MultiSelectionBar } from "../../gui/base/MultiSelectionBar"
 import type { EntityUpdateData } from "../../api/main/EventController"
 import { isUpdateForTypeRef } from "../../api/main/EventController"
 import { navButtonRoutes, throttleRoute } from "../../misc/RouteChange"
@@ -34,12 +32,8 @@ import { size } from "../../gui/size"
 import { FolderColumnView } from "../../gui/FolderColumnView.js"
 import { getGroupInfoDisplayName } from "../../api/common/utils/GroupUtils"
 import { isSameId } from "../../api/common/utils/EntityUtils"
-import type { ContactModel } from "../model/ContactModel"
-import { ActionBar } from "../../gui/base/ActionBar"
 import { SidebarSection } from "../../gui/SidebarSection"
-import { SetupMultipleError } from "../../api/common/error/SetupMultipleError"
 import { attachDropdown, createDropdown, DropdownButtonAttrs } from "../../gui/base/Dropdown.js"
-import { showFileChooser } from "../../file/FileController.js"
 import { IconButton, IconButtonAttrs } from "../../gui/base/IconButton.js"
 import { ButtonSize } from "../../gui/base/ButtonSize.js"
 import { BottomNav } from "../../gui/nav/BottomNav.js"
@@ -60,6 +54,7 @@ import { SelectAllCheckbox } from "../../gui/SelectAllCheckbox.js"
 import { ContactViewerActions } from "./ContactViewerActions.js"
 import { TopAppBar } from "../../gui/TopAppBar.js"
 import { MobileBottomActionBar } from "../../gui/MobileBottomActionBar.js"
+import { exportAsVCard, importAsVCard } from "./ImportAsVCard.js"
 
 assertMainOrNode()
 
@@ -135,7 +130,7 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 										columnType: "first",
 										offlineIndicatorModel: vnode.attrs.header.offlineIndicatorModel,
 										title: this.listColumn.getTitle(),
-										mobileActions: m(IconButton, {
+										actions: m(IconButton, {
 											title: "selectMultiple_action",
 											click: () => this._contactList?.list.enterMobileMultiselection(),
 											icon: Icons.AddCheckCirle,
@@ -172,9 +167,7 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 						mobileHeader: () =>
 							m(MobileHeader, {
 								viewSlider: this.viewSlider,
-								// FIXME
-								mobileActions: this.contactViewerActions(contacts),
-								// FIXME
+								actions: this.contactViewerActions(contacts),
 								mobileRightmostButton: () => this.renderHeaderRightView(),
 								offlineIndicatorModel: vnode.attrs.header.offlineIndicatorModel,
 								title: this.contactColumn.getTitle(),
@@ -240,8 +233,8 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 				header: styles.isSingleColumnLayout()
 					? null
 					: m(Header, {
-							headerView: this.renderHeaderView(),
-							rightView: this.renderHeaderRightView(),
+							headerView: null,
+							rightView: null,
 							searchBar: () =>
 								m(searchBar, {
 									placeholder: lang.get("searchContacts_placeholder"),
@@ -398,7 +391,7 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 						: [
 								{
 									label: "importVCard_action",
-									click: () => this._importAsVCard(),
+									click: () => importAsVCard(),
 									icon: Icons.ContactImport,
 								},
 								{
@@ -420,62 +413,6 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 			}),
 		)
 	}
-
-	_importAsVCard() {
-		showFileChooser(true, ["vcf"]).then((contactFiles) => {
-			let numberOfContacts: number
-
-			try {
-				if (contactFiles.length > 0) {
-					let vCardsList = contactFiles.map((contactFile) => {
-						let vCardFileData = utf8Uint8ArrayToString(contactFile.data)
-						let vCards = vCardFileToVCards(vCardFileData)
-
-						if (vCards == null) {
-							throw new Error("no vcards found")
-						} else {
-							return vCards
-						}
-					})
-					return showProgressDialog(
-						"pleaseWait_msg",
-						Promise.resolve().then(() => {
-							const flatvCards = flat(vCardsList)
-							const contactMembership = assertNotNull(
-								locator.logins.getUserController().user.memberships.find((m) => m.groupType === GroupType.Contact),
-							)
-							const contactList = vCardListToContacts(flatvCards, contactMembership.group)
-							numberOfContacts = contactList.length
-							return locator.contactModel.contactListId().then((contactListId) =>
-								locator.entityClient.setupMultipleEntities(contactListId, contactList).then(() => {
-									// actually a success message
-									Dialog.message(() =>
-										lang.get("importVCardSuccess_msg", {
-											"{1}": numberOfContacts,
-										}),
-									)
-								}),
-							)
-						}),
-					)
-				}
-			} catch (e) {
-				console.log(e)
-
-				if (e instanceof SetupMultipleError) {
-					Dialog.message(() =>
-						lang.get("importContactsError_msg", {
-							"{amount}": e.failedInstances.length + "",
-							"{total}": numberOfContacts + "",
-						}),
-					)
-				} else {
-					Dialog.message("importVCardError_msg")
-				}
-			}
-		})
-	}
-
 	_mergeAction(): Promise<void> {
 		return showProgressDialog(
 			"pleaseWait_msg",
@@ -692,38 +629,6 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 		return false
 	}
 
-	/**
-	 * Used by Header to figure out when content needs to be injected there
-	 * @returns {Children} Mithril children or null
-	 */
-	private renderHeaderView(): Children {
-		const contactList = this._contactList
-
-		if (
-			this.viewSlider.getVisibleBackgroundColumns().length === 1 &&
-			contactList &&
-			contactList.list &&
-			contactList.list.isMobileMultiSelectionActionActive()
-		) {
-			return m(
-				MultiSelectionBar,
-				{
-					selectNoneHandler: () => {
-						contactList.list.selectNone()
-					},
-					text: String(contactList.list.getSelectedEntities().length),
-				},
-				m(ActionBar, {
-					buttons: getMultiContactViewActionAttrs(contactList.list.getSelectedEntities(), false, () => {
-						if (contactList) contactList.list.selectNone()
-					}),
-				}),
-			)
-		} else {
-			return null
-		}
-	}
-
 	private renderListToolbar() {
 		return m(
 			DesktopListToolbar,
@@ -830,27 +735,4 @@ export function getMultiContactViewActionAttrs(contactList: Contact[], prependCa
 		},
 	]
 	return buttons.filter(isNotNull)
-}
-
-/**
- *Creates a vCard file with all contacts if at least one contact exists
- */
-export function exportAsVCard(contactModel: ContactModel): Promise<void> {
-	return showProgressDialog(
-		"pleaseWait_msg",
-		contactModel.contactListId().then((contactListId) => {
-			if (!contactListId) return 0
-			return locator.entityClient.loadAll(ContactTypeRef, contactListId).then((allContacts) => {
-				if (allContacts.length === 0) {
-					return 0
-				} else {
-					return exportContacts(allContacts).then(() => allContacts.length)
-				}
-			})
-		}),
-	).then((nbrOfContacts) => {
-		if (nbrOfContacts === 0) {
-			Dialog.message("noContacts_msg")
-		}
-	})
 }
