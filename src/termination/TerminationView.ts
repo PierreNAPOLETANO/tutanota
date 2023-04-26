@@ -50,7 +50,6 @@ export class TerminationView extends BaseTopLevelView implements TopLevelView<Te
 			},
 			[
 				m(Header, {
-					viewSlider: null,
 					...attrs.header,
 				}),
 				m(

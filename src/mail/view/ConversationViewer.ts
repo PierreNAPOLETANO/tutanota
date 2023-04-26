@@ -12,7 +12,6 @@ import { px, size } from "../../gui/size.js"
 import { Keys } from "../../api/common/TutanotaConstants.js"
 import { keyManager, Shortcut } from "../../misc/KeyManager.js"
 import { styles } from "../../gui/styles.js"
-import { MailViewerToolbar } from "./MailViewerToolbar.js"
 
 export interface ConversationViewerAttrs {
 	viewModel: ConversationViewModel
@@ -142,7 +141,8 @@ export class ConversationViewer implements Component<ConversationViewerAttrs> {
 				style: {
 					border: `1px solid ${theme.list_border}`,
 					backgroundColor: theme.content_bg,
-					marginTop: px(conversationCardMargin),
+					// FIXME scrolling if off
+					marginTop: px(position === 0 ? conversationCardMargin / 2 : conversationCardMargin),
 				},
 			},
 			mailViewModel.isCollapsed()
@@ -152,9 +152,8 @@ export class ConversationViewer implements Component<ConversationViewerAttrs> {
 				: m(MailViewer, {
 						viewModel: mailViewModel,
 						isPrimary: isPrimary,
-						//  position 0 is a subject and we want to expand for the first email
-						// like when it's a forwarded email
-						defaultQuoteBehavior: position === 1 ? "expand" : "collapse",
+						// we want to expand for the first email like when it's a forwarded email
+						defaultQuoteBehavior: position === 0 ? "expand" : "collapse",
 				  }),
 		)
 	}

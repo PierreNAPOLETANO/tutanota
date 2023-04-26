@@ -733,7 +733,6 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 			".main-view",
 			m(this.viewSlider, {
 				header: m(Header, {
-					viewSlider: this.viewSlider,
 					overrideBackIcon: this.getHeaderBackIcon(),
 					rightView: this.renderHeaderRightView(),
 					handleBackPress: () => this.handleBackButton(),

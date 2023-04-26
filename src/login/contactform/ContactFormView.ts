@@ -64,7 +64,6 @@ export class ContactFormView implements TopLevelView {
 		this.view = (): Children => {
 			return m(".main-view.flex.col", [
 				m(Header, {
-					viewSlider: null,
 					...this.headerAttrs,
 				}),
 				m(".flex-center.scroll", m(".flex-grow-shrink-auto.max-width-l.third.pb.plr-l", this._getContactFormContent())),

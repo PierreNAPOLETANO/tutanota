@@ -29,7 +29,6 @@ import { formatDateWithMonth, formatDateWithTimeIfNotEven } from "../../misc/For
 import { showDateRangeSelectionDialog } from "../../gui/date/DatePickerDialog"
 import { Icons } from "../../gui/base/icons/Icons"
 import { PageSize } from "../../gui/base/List"
-import { MultiSelectionBar } from "../../gui/base/MultiSelectionBar"
 import { BaseHeaderAttrs, Header } from "../../gui/Header.js"
 import type { EntityUpdateData } from "../../api/main/EventController"
 import { isUpdateForTypeRef } from "../../api/main/EventController"
@@ -59,17 +58,17 @@ import Stream from "mithril/stream"
 import { MultiContactViewer } from "../../contacts/view/MultiContactViewer.js"
 import { assertIsEntity2, elementIdPart, getElementId } from "../../api/common/utils/EntityUtils.js"
 import { ContactCardViewer } from "../../contacts/view/ContactCardViewer.js"
-import { getMultiMailViewerActionButtonAttrs, MultiMailViewer } from "../../mail/view/MultiMailViewer.js"
+import { MultiMailViewer } from "../../mail/view/MultiMailViewer.js"
 import { ConversationViewer } from "../../mail/view/ConversationViewer.js"
 import { ConversationViewModel } from "../../mail/view/ConversationViewModel.js"
 import { ContactViewToolbar } from "../../contacts/view/ContactViewToolbar.js"
-import { confirmMerge, deleteContacts, getMultiContactViewActionAttrs, writeMail } from "../../contacts/view/ContactView.js"
-import { ActionBar } from "../../gui/base/ActionBar.js"
+import { confirmMerge, deleteContacts, writeMail } from "../../contacts/view/ContactView.js"
 import ColumnEmptyMessageBox from "../../gui/base/ColumnEmptyMessageBox.js"
 import { theme } from "../../gui/theme.js"
 import { SearchResult } from "../../api/worker/search/SearchTypes.js"
 import { isSameSearchRestriction } from "../model/SearchModel.js"
 import { searchBar } from "../SearchBar.js"
+import { MobileMultiselectionActionToolbar } from "../../mail/view/MobileMultiselectionActionToolbar.js"
 
 assertMainOrNode()
 
@@ -326,9 +325,7 @@ export class SearchView extends BaseTopLevelView implements TopLevelView<SearchV
 			"#search.main-view",
 			m(this.viewSlider, {
 				header: m(Header, {
-					headerView: this.renderHeaderView(),
 					rightView: this.renderHeaderRightView(),
-					viewSlider: this.viewSlider,
 					searchBar: () =>
 						m(searchBar, {
 							placeholder: this.searchBarPlaceholder(),
@@ -340,6 +337,14 @@ export class SearchView extends BaseTopLevelView implements TopLevelView<SearchV
 				bottomNav:
 					styles.isSingleColumnLayout() && this.viewSlider.focusedColumn === this.resultDetailsColumn && this.conversationViewModel
 						? m(MobileMailActionBar, { viewModel: this.conversationViewModel?.primaryViewModel() })
+						: styles.isSingleColumnLayout() &&
+						  this.searchList.list &&
+						  this.searchList.list.isMobileMultiSelectionActionActive() &&
+						  getCurrentSearchMode() === "mail"
+						? m(MobileMultiselectionActionToolbar, {
+								mails: this.searchList.list.getSelectedEntities().map(({ entry }) => entry as Mail),
+								selectNone: () => this.searchList.selectNone(),
+						  })
 						: m(BottomNav),
 			}),
 		)
@@ -789,47 +794,48 @@ export class SearchView extends BaseTopLevelView implements TopLevelView<SearchV
 	 * Used by Header to figure out when content needs to be injected there
 	 * @returns {Children} Mithril children or null
 	 */
-	private renderHeaderView(): Children {
-		if (getCurrentSearchMode() === "contact") {
-			const selectedContacts =
-				this.searchList.list
-					?.getSelectedEntities()
-					.map(({ entry }) => entry)
-					.filter(assertIsEntity2(ContactTypeRef)) ?? []
-
-			return this.viewSlider.getVisibleBackgroundColumns().length === 1 &&
-				this.searchList.list &&
-				this.searchList.list.isMobileMultiSelectionActionActive()
-				? m(
-						MultiSelectionBar,
-						{
-							selectNoneHandler: () => this.searchList.selectNone(),
-							text: String(selectedContacts.length),
-						},
-						m(ActionBar, { buttons: getMultiContactViewActionAttrs(selectedContacts, false, () => this.searchList.selectNone()) }),
-				  )
-				: null
-		} else {
-			const selectedMails =
-				this.searchList.list
-					?.getSelectedEntities()
-					.map(({ entry }) => entry)
-					.filter(assertIsEntity2(MailTypeRef)) ?? []
-
-			return this.viewSlider.getVisibleBackgroundColumns().length === 1 &&
-				this.searchList.list &&
-				this.searchList.list.isMobileMultiSelectionActionActive()
-				? m(
-						MultiSelectionBar,
-						{
-							selectNoneHandler: () => this.searchList.selectNone(),
-							text: String(selectedMails.length),
-						},
-						m(ActionBar, { buttons: getMultiMailViewerActionButtonAttrs(selectedMails, () => this.searchList.selectNone(), false) }),
-				  )
-				: null
-		}
-	}
+	// FIXME: nuke this
+	// private renderHeaderView(): Children {
+	// 	if (getCurrentSearchMode() === "contact") {
+	// 		const selectedContacts =
+	// 			this.searchList.list
+	// 				?.getSelectedEntities()
+	// 				.map(({ entry }) => entry)
+	// 				.filter(assertIsEntity2(ContactTypeRef)) ?? []
+	//
+	// 		return this.viewSlider.getVisibleBackgroundColumns().length === 1 &&
+	// 			this.searchList.list &&
+	// 			this.searchList.list.isMobileMultiSelectionActionActive()
+	// 			? m(
+	// 					MultiSelectionBar,
+	// 					{
+	// 						selectNoneHandler: () => this.searchList.selectNone(),
+	// 						text: String(selectedContacts.length),
+	// 					},
+	// 					m(ActionBar, { buttons: getMultiContactViewActionAttrs(selectedContacts, false, () => this.searchList.selectNone()) }),
+	// 			  )
+	// 			: null
+	// 	} else {
+	// 		const selectedMails =
+	// 			this.searchList.list
+	// 				?.getSelectedEntities()
+	// 				.map(({ entry }) => entry)
+	// 				.filter(assertIsEntity2(MailTypeRef)) ?? []
+	//
+	// 		return this.viewSlider.getVisibleBackgroundColumns().length === 1 &&
+	// 			this.searchList.list &&
+	// 			this.searchList.list.isMobileMultiSelectionActionActive()
+	// 			? m(
+	// 					MultiSelectionBar,
+	// 					{
+	// 						selectNoneHandler: () => this.searchList.selectNone(),
+	// 						text: String(selectedMails.length),
+	// 					},
+	// 					m(ActionBar, { buttons: getMultiMailViewerActionButtonAttrs(selectedMails, () => this.searchList.selectNone(), false) }),
+	// 			  )
+	// 			: null
+	// 	}
+	// }
 
 	getMainButton(typeRef: TypeRef<unknown>):
 		| {

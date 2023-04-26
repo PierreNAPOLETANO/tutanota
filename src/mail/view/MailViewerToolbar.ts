@@ -210,7 +210,7 @@ export class MailViewerActions implements Component<MailViewerToolbarAttrs> {
 export class MailViewerToolbar implements Component<MailViewerToolbarAttrs> {
 	view(vnode: Vnode<MailViewerToolbarAttrs>): Children {
 		return m(
-			".flex.pt-xs.pb-xs.list-bg.plr-m.list-border-bottom",
+			".flex.pt-xs.pb-xs.plr-m",
 			// Height keeps the toolbar showing for consistency, even if there are no actions
 			m(".flex-grow", { style: { height: px(size.button_height) } }),
 			m(MailViewerActions, vnode.attrs),

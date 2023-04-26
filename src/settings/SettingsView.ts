@@ -412,7 +412,6 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 			"#settings.main-view",
 			m(this.viewSlider, {
 				header: m(Header, {
-					viewSlider: this.viewSlider,
 					searchBar: () => this.renderSearchBar(),
 					...attrs.header,
 				}),

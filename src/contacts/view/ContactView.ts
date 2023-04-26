@@ -188,7 +188,6 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 				header: m(Header, {
 					headerView: this.renderHeaderView(),
 					rightView: this.renderHeaderRightView(),
-					viewSlider: this.viewSlider,
 					searchBar: () =>
 						m(searchBar, {
 							placeholder: lang.get("searchContacts_placeholder"),

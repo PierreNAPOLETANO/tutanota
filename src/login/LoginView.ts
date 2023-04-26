@@ -74,7 +74,6 @@ export class LoginView extends BaseTopLevelView implements TopLevelView<LoginVie
 			},
 			[
 				m(Header, {
-					viewSlider: null,
 					...attrs.header,
 				}),
 				m(

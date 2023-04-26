@@ -278,10 +278,10 @@ export class MailModel {
 	}
 
 	isExportingMailsAllowed(): boolean {
-		return this.logins.isEnabled(FeatureType.DisableMailExport)
+		return !this.logins.isEnabled(FeatureType.DisableMailExport)
 	}
 
-	async markMails(mails: Mail[], unread: boolean): Promise<void> {
+	async markMails(mails: readonly Mail[], unread: boolean): Promise<void> {
 		await promiseMap(
 			mails,
 			async (mail) => {

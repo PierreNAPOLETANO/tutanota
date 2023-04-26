@@ -55,6 +55,8 @@ import { List, VirtualRow } from "../../gui/base/List.js"
 import { MailViewerActions, MailViewerToolbar } from "./MailViewerToolbar.js"
 import { TopAppBar } from "../../gui/TopAppBar.js"
 import { OfflineIndicatorViewModel } from "../../gui/base/OfflineIndicatorViewModel.js"
+import { theme } from "../../gui/theme.js"
+import { MobileMultiselectionActionToolbar } from "./MobileMultiselectionActionToolbar.js"
 
 assertMainOrNode()
 
@@ -137,7 +139,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 				view: () => {
 					const mailList = this.cache.mailList
 					return m(BackgroundColumnLayout, {
-						desktopToolbar: () => this.renderToolbar(),
+						desktopToolbar: () => this.renderDesktopListToolbar(),
 						columnLayout: mailList ? m(mailList, { mailView: this }) : null,
 						mobileHeader: () =>
 							// FIXME is this the right condition?
@@ -247,6 +249,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 
 	private renderSingleMailViewer(offlineIndicatorViewModel: OfflineIndicatorViewModel, viewModel: ConversationViewModel) {
 		return m(BackgroundColumnLayout, {
+			backgroundColor: theme.navigation_bg,
 			desktopToolbar: () =>
 				m(MailViewerToolbar, {
 					mailModel: viewModel.primaryViewModel().mailModel,
@@ -285,6 +288,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 			selectNone: () => this.cache.mailList?.list.selectNone(),
 		}
 		return m(BackgroundColumnLayout, {
+			backgroundColor: theme.navigation_bg,
 			desktopToolbar: () => m(MailViewerToolbar, toolbarAttrs),
 			mobileHeader: () => m(TopAppBar, { right: m(MailViewerActions, toolbarAttrs) }),
 			columnLayout: m(MultiMailViewer, {
@@ -346,7 +350,6 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 					? null
 					: m(Header, {
 							rightView: this.renderHeaderRightView(),
-							viewSlider: this.viewSlider,
 							searchBar: () =>
 								m(searchBar, {
 									placeholder: lang.get("searchEmails_placeholder"),
@@ -358,30 +361,13 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 						? m(MobileMailActionBar, { viewModel: this.conversationViewModel.primaryViewModel() })
 						: // FIXME is this the right condition?
 						styles.isSingleColumnLayout() &&
-						  (this.cache.mailList?.list.isMultiSelectionActive() || this.cache.mailList?.list.isMobileMultiSelectionActionActive())
+						  this.cache.mailList &&
+						  (this.cache.mailList.list.isMultiSelectionActive() || this.cache.mailList.list.isMobileMultiSelectionActionActive())
 						? // FIXME placeholder buttons
-						  m(".bottom-nav.bottom-action-bar.flex.items-center.plr-l.justify-between", [
-								m(IconButton, {
-									icon: Icons.Trash,
-									title: "delete_action",
-									click: noOp,
-								}),
-								m(IconButton, {
-									icon: Icons.Folder,
-									title: "move_action",
-									click: noOp,
-								}),
-								m(IconButton, {
-									icon: Icons.Eye,
-									title: "markRead_action",
-									click: noOp,
-								}),
-								m(IconButton, {
-									icon: Icons.NoEye,
-									title: "markUnread_action",
-									click: noOp,
-								}),
-						  ])
+						  m(MobileMultiselectionActionToolbar, {
+								mails: this.cache.mailList.list.getSelectedEntities(),
+								selectNone: () => this.cache.mailList?.list.selectNone(),
+						  })
 						: m(BottomNav),
 			}),
 		)
@@ -967,8 +953,8 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		await showEditFolderDialog(mailboxDetail, folder, parentFolder)
 	}
 
-	private renderToolbar(): Children {
-		return m(".flex.pt-xs.pb-xs.items-center.list-border-bottom", [
+	private renderDesktopListToolbar(): Children {
+		return m(".flex.pt-xs.pb-xs.items-center", [
 			// matching MailRow spacing here
 			this.renderSelectAll(),
 		])

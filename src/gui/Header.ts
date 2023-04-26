@@ -34,7 +34,6 @@ export interface BaseHeaderAttrs {
 }
 
 export interface HeaderAttrs extends BaseHeaderAttrs {
-	viewSlider: ViewSlider | null
 	headerView?: Children
 	rightView?: Children
 	handleBackPress?: () => boolean
@@ -56,14 +55,7 @@ export class Header implements ClassComponent<HeaderAttrs> {
 			injectedView
 				? // Make sure this wrapper takes up the full height like the things inside it expect
 				  m(".flex-grow.height-100p", injectedView)
-				: [this.renderLeftContent(attrs), this.renderCenterContent(attrs), this.renderRightContent(attrs)],
-			styles.isUsingBottomNavigation() &&
-			locator.logins.isAtLeastPartiallyLoggedIn() &&
-			!attrs.centerContent &&
-			!injectedView &&
-			isNotTemporary(locator.logins)
-				? m(OfflineIndicatorMobile, attrs.offlineIndicatorModel.getCurrentAttrs())
-				: null,
+				: [this.renderLeftContent(attrs), this.renderRightContent(attrs)],
 		])
 	}
 
@@ -73,14 +65,6 @@ export class Header implements ClassComponent<HeaderAttrs> {
 
 	onremove(): void {
 		keyManager.unregisterShortcuts(this.shortcuts)
-	}
-
-	/**
-	 * render the new mail/contact/event button in the top right of the one- and two-column layouts.
-	 * @private
-	 */
-	private renderHeaderAction(attrs: HeaderAttrs): Children {
-		return m(".header-right.pr-s.flex-end.items-center", attrs.rightView)
 	}
 
 	/**
@@ -106,10 +90,6 @@ export class Header implements ClassComponent<HeaderAttrs> {
 		return searchBar ? [searchBar, m(".nav-bar-spacer")] : null
 	}
 
-	private focusMain(attrs: HeaderAttrs) {
-		attrs.viewSlider?.getMainColumn().focus()
-	}
-
 	private renderButtons(attrs: HeaderAttrs): Children {
 		// We assign click listeners to buttons to move focus correctly if the view is already open
 		return locator.logins.isInternalUserLoggedIn()
@@ -120,7 +100,7 @@ export class Header implements ClassComponent<HeaderAttrs> {
 						href: navButtonRoutes.mailUrl,
 						isSelectedPrefix: MAIL_PREFIX,
 						colors: NavButtonColor.Header,
-						click: () => m.route.get() === navButtonRoutes.mailUrl && this.focusMain(attrs),
+						click: () => m.route.get() === navButtonRoutes.mailUrl,
 					}),
 					!locator.logins.isEnabled(FeatureType.DisableContacts)
 						? m(NavButton, {
@@ -129,7 +109,7 @@ export class Header implements ClassComponent<HeaderAttrs> {
 								href: navButtonRoutes.contactsUrl,
 								isSelectedPrefix: CONTACTS_PREFIX,
 								colors: NavButtonColor.Header,
-								click: () => m.route.get() === navButtonRoutes.contactsUrl && this.focusMain(attrs),
+								click: () => m.route.get() === navButtonRoutes.contactsUrl,
 						  })
 						: null,
 					!locator.logins.isEnabled(FeatureType.DisableCalendar)
@@ -138,7 +118,7 @@ export class Header implements ClassComponent<HeaderAttrs> {
 								icon: () => BootIcons.Calendar,
 								href: CALENDAR_PREFIX,
 								colors: NavButtonColor.Header,
-								click: () => m.route.get().startsWith(CALENDAR_PREFIX) && this.focusMain(attrs),
+								click: () => m.route.get().startsWith(CALENDAR_PREFIX),
 						  })
 						: null,
 			  ]
@@ -182,105 +162,88 @@ export class Header implements ClassComponent<HeaderAttrs> {
 		]
 	}
 
-	private renderCenterContent(attrs: HeaderAttrs): Children {
-		if (!styles.isUsingBottomNavigation()) return null
-
-		const header = (title: string, left?: Children, right?: Children) => {
-			return m(".flex-start.header-middle.flex-grow.b", [left || null, m(".mt-s.text-ellipsis", title), right || null])
-		}
-
-		if (attrs.centerContent) {
-			return attrs.centerContent()
-		} else if (attrs.viewSlider) {
-			const firstVisibleBgColumn = attrs.viewSlider.getBackgroundColumns().find((c) => c.visible)
-
-			if (firstVisibleBgColumn) {
-				const title = firstVisibleBgColumn.getTitle()
-				const buttonLeft = firstVisibleBgColumn.getTitleButtonLeft()
-				const buttonRight = firstVisibleBgColumn.getTitleButtonRight()
-				return header(title, buttonLeft, buttonRight)
-			} else {
-				return header("")
-			}
-		} else if (m.route.get().startsWith("/login")) {
-			return header(lang.get("login_label"))
-		} else if (m.route.get().startsWith("/signup")) {
-			return header(lang.get("registrationHeadline_msg"))
-		} else if (m.route.get().startsWith("/termination")) {
-			return header(lang.get("termination_title"))
-		} else {
-			return null
-		}
-	}
+	// private renderCenterContent(attrs: HeaderAttrs): Children {
+	// 	if (!styles.isUsingBottomNavigation()) return null
+	//
+	// 	const header = (title: string, left?: Children, right?: Children) => {
+	// 		return m(".flex-start.header-middle.flex-grow.b", [left || null, m(".mt-s.text-ellipsis", title), right || null])
+	// 	}
+	//
+	// 	if (attrs.centerContent) {
+	// 		return attrs.centerContent()
+	// 	} else if (attrs.viewSlider) {
+	// 		const firstVisibleBgColumn = attrs.viewSlider.getBackgroundColumns().find((c) => c.visible)
+	//
+	// 		if (firstVisibleBgColumn) {
+	// 			const title = firstVisibleBgColumn.getTitle()
+	// 			const buttonLeft = firstVisibleBgColumn.getTitleButtonLeft()
+	// 			const buttonRight = firstVisibleBgColumn.getTitleButtonRight()
+	// 			return header(title, buttonLeft, buttonRight)
+	// 		} else {
+	// 			return header("")
+	// 		}
+	// 	} else if (m.route.get().startsWith("/login")) {
+	// 		return header(lang.get("login_label"))
+	// 	} else if (m.route.get().startsWith("/signup")) {
+	// 		return header(lang.get("registrationHeadline_msg"))
+	// 	} else if (m.route.get().startsWith("/termination")) {
+	// 		return header(lang.get("termination_title"))
+	// 	} else {
+	// 		return null
+	// 	}
+	// }
 
 	private renderRightContent(attrs: HeaderAttrs): Children {
-		return isNotTemporary(locator.logins) ? (styles.isUsingBottomNavigation() ? this.renderHeaderAction(attrs) : this.renderFullNavigation(attrs)) : null
+		return isNotTemporary(locator.logins) ? this.renderFullNavigation(attrs) : null
 	}
 
 	private renderLeftContent(attrs: HeaderAttrs): Children {
-		const showBackButton = this.isBackButtonVisible(attrs)
-		const showNewsIndicator = !showBackButton && styles.isUsingBottomNavigation()
-		const liveNewsCount = attrs.newsModel.liveNewsIds.length
-		const { viewSlider } = attrs
-
 		const style = {
-			"margin-left": styles.isUsingBottomNavigation() ? px(-15) : null, // manual margin to align the hamburger icon on mobile devices
-			overflow: showNewsIndicator ? "visible" : "hidden", // Unsure whether we actually need overflow: visible here
+			// overflow: showNewsIndicator ? "visible" : "hidden", // Unsure whether we actually need overflow: visible here
 		}
 
 		let content: Children = null
-		if (viewSlider && viewSlider.isFocusPreviousPossible()) {
-			content = m("", [
-				m(IconButton, {
-					title: () => {
-						const prevColumn = viewSlider.getPreviousColumn()
-						return prevColumn ? prevColumn.getTitle() : ""
-					},
-					icon: this.isBackButtonVisible(attrs) ? BootIcons.Back : BootIcons.MoreVertical,
-					click: () => {
-						if (!attrs.handleBackPress?.()) {
-							viewSlider.focusPreviousColumn()
-						}
-					},
-				}),
-				showNewsIndicator
-					? m(CounterBadge, {
-							count: liveNewsCount,
-							position: {
-								top: px(4),
-								right: px(-3),
-							},
-							color: "white",
-							background: theme.list_accent_fg,
-					  })
-					: null,
-			])
-		} else if (!styles.isUsingBottomNavigation() && (!viewSlider || viewSlider.isUsingOverlayColumns())) {
-			content = m(
-				".logo.logo-height",
-				{
-					...landmarkAttrs(AriaLandmarks.Banner, "Tutanota logo"),
-					style: {
-						"margin-left": px(sizes.drawer_menu_width),
-					},
+
+		const liveNewsCount = attrs.newsModel.liveNewsIds.length
+		// if (viewSlider && viewSlider.isFocusPreviousPossible()) {
+		// 	content = m("", [
+		// 		m(IconButton, {
+		// 			title: () => {
+		// 				const prevColumn = viewSlider.getPreviousColumn()
+		// 				return prevColumn ? prevColumn.getTitle() : ""
+		// 			},
+		// 			icon: this.isBackButtonVisible(attrs) ? BootIcons.Back : BootIcons.MoreVertical,
+		// 			click: () => {
+		// 				if (!attrs.handleBackPress?.()) {
+		// 					viewSlider.focusPreviousColumn()
+		// 				}
+		// 			},
+		// 		}),
+		// 		showNewsIndicator
+		// 			? m(CounterBadge, {
+		// 					count: liveNewsCount,
+		// 					position: {
+		// 						top: px(4),
+		// 						right: px(-3),
+		// 					},
+		// 					color: "white",
+		// 					background: theme.list_accent_fg,
+		// 			  })
+		// 			: null,
+		// 	])
+		// } else
+		content = m(
+			".logo.logo-height",
+			{
+				...landmarkAttrs(AriaLandmarks.Banner, "Tutanota logo"),
+				style: {
+					"margin-left": px(sizes.drawer_menu_width),
 				},
-				m.trust(theme.logo),
-			) // the custom logo is already sanitized in theme.js
-		}
+			},
+			m.trust(theme.logo),
+		) // the custom logo is already sanitized in theme.js
 
 		return m(".header-left.pl-l.ml-negative-s.flex-start.items-center", { style }, content)
-	}
-
-	/**
-	 * Returns true iff the menu icon should be replaced by the back button.
-	 * Calls overrideBackIcon().
-	 */
-	private isBackButtonVisible(attrs: HeaderAttrs): boolean {
-		if (!attrs.viewSlider) {
-			return false
-		}
-
-		return attrs.overrideBackIcon ? attrs.overrideBackIcon === "back" : !attrs.viewSlider.getBackgroundColumns()[0].visible
 	}
 }
 

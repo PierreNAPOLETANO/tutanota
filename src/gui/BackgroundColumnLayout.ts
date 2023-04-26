@@ -59,13 +59,19 @@ export interface BackgroundColumnLayoutAttrs {
 	mobileHeader: () => Children
 	desktopToolbar: () => Children
 	columnLayout: Child
+	backgroundColor?: string
 }
 
 export class BackgroundColumnLayout implements Component<BackgroundColumnLayoutAttrs> {
 	view({ attrs }: Vnode<BackgroundColumnLayoutAttrs>): Children {
-		return m(".list-column.flex.col.fill-absolute", [
-			styles.isUsingBottomNavigation() ? attrs.mobileHeader() : attrs.desktopToolbar(),
-			m(".flex-grow.rel", attrs.columnLayout),
-		])
+		return m(
+			".list-column.flex.col.fill-absolute",
+			{
+				style: {
+					backgroundColor: attrs.backgroundColor,
+				},
+			},
+			[styles.isUsingBottomNavigation() ? attrs.mobileHeader() : attrs.desktopToolbar(), m(".flex-grow.rel", attrs.columnLayout)],
+		)
 	}
 }

@@ -1170,7 +1170,7 @@ styles.registerStyle("main", () => {
 			"margin-top": "env(safe-area-inset-top)", // insets for iPhone X
 		},
 		"bottom-nav, .bottom-nav": {
-			"box-shadow": `0 -2px 4px 0 ${theme.header_box_shadow_bg}`,
+			"border-top": `1px solid ${theme.navigation_border}`,
 			height: positionValue(size.bottom_nav_bar),
 			background: theme.header_bg,
 			"margin-bottom": "env(safe-area-inset-bottom)",
@@ -2027,25 +2027,6 @@ styles.registerStyle("main", () => {
 			width: px(size.drawer_menu_width),
 			background: getNavigationMenuBg(),
 			"border-right": `0.5px solid ${theme.navigation_border}`,
-		},
-		".mobile .header-nav": {
-			height: px(size.navbar_height_mobile),
-		},
-		".mobile .header-logo": {
-			height: px(size.header_logo_height_mobile),
-		},
-		".mobile .header-logo > svg": {
-			height: px(size.header_logo_height_mobile),
-			width: "auto",
-		},
-		".mobile .header-left": {
-			width: `${px(size.navbar_edge_width_mobile)}`,
-		},
-		".mobile .header-middle": {
-		},
-		".mobile .header-right": {
-			position: "initial",
-			// width: `${px(size.navbar_edge_width_mobile)}`,
 		},
 		".menu-shadow": {
 			"box-shadow": "0 4px 5px 2px rgba(0,0,0,0.14), 0 4px 5px 2px rgba(0,0,0,0.14), 0 4px 5px 2px rgba(0,0,0,0.14)",

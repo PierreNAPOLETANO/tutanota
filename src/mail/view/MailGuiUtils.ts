@@ -304,7 +304,7 @@ export function getReferencedAttachments(attachments: Array<TutanotaFile>, refer
 export async function showMoveMailsDropdown(
 	model: MailModel,
 	origin: PosRect,
-	mails: Mail[],
+	mails: readonly Mail[],
 	opts?: { width?: number; withBackground?: boolean; onSelected?: () => unknown },
 ): Promise<void> {
 	const { width = 300, withBackground = false, onSelected = noOp } = opts ?? {}

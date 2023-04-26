@@ -197,7 +197,6 @@ export class ExternalLoginView extends BaseTopLevelView implements TopLevelView<
 	view({ attrs }: Vnode<ExternalLoginViewAttrs>): Children {
 		return m(".main-view", [
 			m(Header, {
-				viewSlider: null,
 				...attrs.header,
 			}),
 			m(".flex-center.scroll.pt-responsive", m(".flex-grow-shrink-auto.max-width-s.pt.pb.plr-l", this.renderContent())),
