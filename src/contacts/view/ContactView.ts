@@ -2,7 +2,7 @@ import m, { Children, Vnode } from "mithril"
 import { ViewSlider } from "../../gui/nav/ViewSlider.js"
 import { ColumnType, ViewColumn } from "../../gui/base/ViewColumn"
 import { BaseHeaderAttrs, Header } from "../../gui/Header.js"
-import { Button, ButtonColor, ButtonType } from "../../gui/base/Button.js"
+import { ButtonColor, ButtonType } from "../../gui/base/Button.js"
 import { ContactEditor } from "../ContactEditor"
 import type { Contact } from "../../api/entities/tutanota/TypeRefs.js"
 import { ContactTypeRef } from "../../api/entities/tutanota/TypeRefs.js"
@@ -17,7 +17,7 @@ import { Icons } from "../../gui/base/icons/Icons"
 import { Dialog } from "../../gui/base/Dialog"
 import { vCardFileToVCards, vCardListToContacts } from "../VCardImporter"
 import { LockedError, NotFoundError } from "../../api/common/error/RestError"
-import { MultiContactViewer } from "./MultiContactViewer"
+import { getContactSelectionMessage, MultiContactViewer } from "./MultiContactViewer"
 import { BootIcons } from "../../gui/base/icons/BootIcons"
 import { showProgressDialog } from "../../gui/dialogs/ProgressDialog"
 import { locator } from "../../api/main/MainLocator"
@@ -38,7 +38,7 @@ import type { ContactModel } from "../model/ContactModel"
 import { ActionBar } from "../../gui/base/ActionBar"
 import { SidebarSection } from "../../gui/SidebarSection"
 import { SetupMultipleError } from "../../api/common/error/SetupMultipleError"
-import { attachDropdown, DropdownButtonAttrs } from "../../gui/base/Dropdown.js"
+import { attachDropdown, createDropdown, DropdownButtonAttrs } from "../../gui/base/Dropdown.js"
 import { showFileChooser } from "../../file/FileController.js"
 import { IconButton, IconButtonAttrs } from "../../gui/base/IconButton.js"
 import { ButtonSize } from "../../gui/base/ButtonSize.js"
@@ -48,12 +48,18 @@ import { BaseTopLevelView } from "../../gui/BaseTopLevelView.js"
 import { TopLevelAttrs, TopLevelView } from "../../TopLevelView.js"
 import { stateBgHover } from "../../gui/builtinThemes.js"
 import { ContactCardViewer } from "./ContactCardViewer.js"
-import { ContactViewToolbar } from "./ContactViewToolbar.js"
 import { MobileContactActionBar } from "./MobileContactActionBar.js"
 import { appendEmailSignature } from "../../mail/signature/Signature.js"
 import { PartialRecipient } from "../../api/common/recipients/Recipient.js"
 import { newMailEditorFromTemplate } from "../../mail/editor/MailEditor.js"
-import { searchBar, SearchBarAttrs } from "../../search/SearchBar.js"
+import { searchBar } from "../../search/SearchBar.js"
+import { BackgroundColumnLayout, MobileHeader } from "../../gui/BackgroundColumnLayout.js"
+import { theme } from "../../gui/theme.js"
+import { DesktopListToolbar, DesktopViewerToolbar } from "../../gui/DesktopListToolbar.js"
+import { SelectAllCheckbox } from "../../gui/SelectAllCheckbox.js"
+import { ContactViewerActions } from "./ContactViewerActions.js"
+import { TopAppBar } from "../../gui/TopAppBar.js"
+import { MobileBottomActionBar } from "../../gui/MobileBottomActionBar.js"
 
 assertMainOrNode()
 
@@ -107,7 +113,36 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 		)
 		this.listColumn = new ViewColumn(
 			{
-				view: () => m(".list-column", [this._contactList ? m(this._contactList) : null]),
+				view: () =>
+					m(BackgroundColumnLayout, {
+						backgroundColor: theme.list_bg,
+						columnLayout: this._contactList ? m(this._contactList) : null,
+						desktopToolbar: () => this.renderListToolbar(),
+						mobileHeader: () =>
+							this._contactList &&
+							(this._contactList.list.isMultiSelectionActive() || this._contactList.list.isMobileMultiSelectionActionActive())
+								? m(TopAppBar, {
+										left: m(SelectAllCheckbox, { list: this._contactList.list }),
+										center: m(".font-weight-600", getContactSelectionMessage(this._contactList.list.getSelectedEntities())),
+										right: m(IconButton, {
+											icon: Icons.Cancel,
+											title: "cancel_action",
+											click: () => this._contactList?.list.selectNone(),
+										}),
+								  })
+								: m(MobileHeader, {
+										viewSlider: this.viewSlider,
+										columnType: "first",
+										offlineIndicatorModel: vnode.attrs.header.offlineIndicatorModel,
+										title: this.listColumn.getTitle(),
+										mobileActions: m(IconButton, {
+											title: "selectMultiple_action",
+											click: () => this._contactList?.list.enterMobileMultiselection(),
+											icon: Icons.AddCheckCirle,
+										}),
+										mobileRightmostButton: () => this.renderHeaderRightView(),
+								  }),
+					}),
 			},
 			ColumnType.Background,
 			size.second_col_min_width,
@@ -131,15 +166,22 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 			{
 				view: () => {
 					const contacts = this._contactList?.list.getSelectedEntities() ?? []
-					return m(".fill-absolute.nav-bg.flex.col", [
-						m(ContactViewToolbar, {
-							contacts,
-							deleteAction: contacts.length > 0 ? () => this._deleteSelected() : undefined,
-							editAction: contacts.length === 1 ? () => this.editSelectedContact() : undefined,
-							mergeAction: contacts.length === 2 ? () => this.mergeSelected() : undefined,
-						}),
-						m(
-							".contact.flex-grow.rel.scroll",
+					return m(BackgroundColumnLayout, {
+						backgroundColor: theme.navigation_bg,
+						desktopToolbar: () => m(DesktopViewerToolbar, this.contactViewerActions(contacts)),
+						mobileHeader: () =>
+							m(MobileHeader, {
+								viewSlider: this.viewSlider,
+								// FIXME
+								mobileActions: this.contactViewerActions(contacts),
+								// FIXME
+								mobileRightmostButton: () => this.renderHeaderRightView(),
+								offlineIndicatorModel: vnode.attrs.header.offlineIndicatorModel,
+								title: this.contactColumn.getTitle(),
+								columnType: "other",
+							}),
+						columnLayout: m(
+							".fill-absolute.flex.col.scroll",
 							this.isShowingMultiselection(contacts)
 								? m(MultiContactViewer, {
 										selectedEntities: this._contactList?.list.getSelectedEntities() ?? [],
@@ -150,7 +192,7 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 										onWriteMail: writeMail,
 								  }),
 						),
-					])
+					})
 				},
 			},
 			ColumnType.Background,
@@ -173,6 +215,16 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 		}
 	}
 
+	private contactViewerActions(contacts: Contact[]) {
+		return m(ContactViewerActions, {
+			contacts,
+			onEdit: (c) => this.editContact(c),
+			onExport: exportContacts,
+			onDelete: deleteContacts,
+			onMerge: confirmMerge,
+		})
+	}
+
 	private isShowingMultiselection(contacts: Contact[]) {
 		return contacts.length === 0 || this._contactList?.list.isMultiSelectionActive()
 	}
@@ -185,15 +237,17 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 		return m(
 			"#contact.main-view",
 			m(this.viewSlider, {
-				header: m(Header, {
-					headerView: this.renderHeaderView(),
-					rightView: this.renderHeaderRightView(),
-					searchBar: () =>
-						m(searchBar, {
-							placeholder: lang.get("searchContacts_placeholder"),
-						}),
-					...attrs.header,
-				}),
+				header: styles.isSingleColumnLayout()
+					? null
+					: m(Header, {
+							headerView: this.renderHeaderView(),
+							rightView: this.renderHeaderRightView(),
+							searchBar: () =>
+								m(searchBar, {
+									placeholder: lang.get("searchContacts_placeholder"),
+								}),
+							...attrs.header,
+					  }),
 				bottomNav:
 					styles.isSingleColumnLayout() &&
 					this.viewSlider.focusedColumn === this.contactColumn &&
@@ -202,6 +256,11 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 								editAction: () => this.editSelectedContact(),
 								deleteAction: () => this._deleteSelected(),
 						  })
+						: styles.isSingleColumnLayout() &&
+						  this._contactList &&
+						  this.viewSlider.focusedColumn === this.listColumn &&
+						  (this._contactList.list.isMultiSelectionActive() || this._contactList.list.isMobileMultiSelectionActionActive())
+						? m(MobileBottomActionBar, this.contactViewerActions(this._contactList.list.getSelectedEntities()))
 						: m(BottomNav),
 			}),
 		)
@@ -218,17 +277,19 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 	private editSelectedContact() {
 		const firstSelected = this._contactList?.list.getSelectedEntities()[0]
 		if (!firstSelected) return
-		new ContactEditor(locator.entityClient, firstSelected).show()
+		this.editContact(firstSelected)
+	}
+
+	private editContact(contact: Contact) {
+		new ContactEditor(locator.entityClient, contact).show()
 	}
 
 	private renderHeaderRightView(): Children {
 		if (this._contactList) {
-			return m(Button, {
-				label: "newContact_action",
+			return m(IconButton, {
+				title: "newContact_action",
 				click: () => this.createNewContact(),
-				type: ButtonType.Action,
-				icon: () => Icons.Add,
-				colors: ButtonColor.Header,
+				icon: Icons.Add,
 			})
 		} else {
 			return null
@@ -661,6 +722,40 @@ export class ContactView extends BaseTopLevelView implements TopLevelView<Contac
 		} else {
 			return null
 		}
+	}
+
+	private renderListToolbar() {
+		return m(
+			DesktopListToolbar,
+			this._contactList ? [m(SelectAllCheckbox, { list: this._contactList.list }), m(".flex-grow"), this.renderSortByButton(this._contactList)] : null,
+		)
+	}
+
+	private renderSortByButton(contactList: ContactListView) {
+		return m(IconButton, {
+			title: "sortBy_label",
+			icon: Icons.ListOrdered,
+			click: (e: MouseEvent, dom: HTMLElement) => {
+				createDropdown({
+					lazyButtons: () => [
+						{
+							label: "firstName_placeholder",
+							click: () => {
+								contactList.sortByFirstName = true
+								contactList.list.sort()
+							},
+						},
+						{
+							label: "lastName_placeholder",
+							click: () => {
+								contactList.sortByFirstName = false
+								contactList.list.sort()
+							},
+						},
+					],
+				})(e, dom)
+			},
+		})
 	}
 }
 

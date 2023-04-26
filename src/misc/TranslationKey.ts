@@ -1607,3 +1607,4 @@ export type TranslationKeyType =
 	| "emptyString_msg"
 	| "loadAll_action"
 	| "selectAllLoaded_action"
+	| "selectMultiple_action"

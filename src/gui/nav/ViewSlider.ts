@@ -106,7 +106,7 @@ export class ViewSlider implements Component<ViewSliderAttrs> {
 					},
 				},
 				[
-					attrs.header,
+					styles.isUsingBottomNavigation() ? null : attrs.header,
 					m(
 						".view-columns.flex-grow.rel",
 						{

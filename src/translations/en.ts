@@ -1622,5 +1622,7 @@ export default {
 		"you_label": "You",
 		"loadAll_action": "Load all",
 		"selectAllLoaded_action": "Select all loaded items",
+		// FIXME phrase
+		"selectMultiple_action": "Select multiple"
 	}
 }

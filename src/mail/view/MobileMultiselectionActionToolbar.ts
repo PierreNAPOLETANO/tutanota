@@ -3,11 +3,13 @@ import m, { Children, Vnode } from "mithril"
 import { IconButton } from "../../gui/base/IconButton.js"
 import { Icons } from "../../gui/base/icons/Icons.js"
 import { promptAndDeleteMails, showMoveMailsDropdown } from "./MailGuiUtils.js"
-import { locator } from "../../api/main/MainLocator.js"
 import { DROPDOWN_MARGIN } from "../../gui/base/Dropdown.js"
+import { MobileBottomActionBar } from "../../gui/MobileBottomActionBar.js"
+import { MailModel } from "../model/MailModel.js"
 
 export interface MobileMultiselectionActionToolbarAttrs {
 	mails: readonly Mail[]
+	mailModel: MailModel
 	selectNone: () => unknown
 }
 
@@ -15,9 +17,9 @@ export class MobileMultiselectionActionToolbar {
 	private dom: HTMLElement | null = null
 
 	view({ attrs }: Vnode<MobileMultiselectionActionToolbarAttrs>): Children {
-		const { mails, selectNone } = attrs
+		const { mails, selectNone, mailModel } = attrs
 		return m(
-			".bottom-nav.bottom-action-bar.flex.items-center.plr-l.justify-between",
+			MobileBottomActionBar,
 			{
 				oncreate: ({ dom }) => (this.dom = dom as HTMLElement),
 			},
@@ -25,15 +27,15 @@ export class MobileMultiselectionActionToolbar {
 				m(IconButton, {
 					icon: Icons.Trash,
 					title: "delete_action",
-					click: () => promptAndDeleteMails(locator.mailModel, mails, selectNone),
+					click: () => promptAndDeleteMails(mailModel, mails, selectNone),
 				}),
-				locator.mailModel.isMovingMailsAllowed()
+				mailModel.isMovingMailsAllowed()
 					? m(IconButton, {
 							icon: Icons.Folder,
 							title: "move_action",
 							click: (e, dom) => {
 								const referenceDom = this.dom ?? dom
-								showMoveMailsDropdown(locator.mailModel, referenceDom.getBoundingClientRect(), mails, {
+								showMoveMailsDropdown(mailModel, referenceDom.getBoundingClientRect(), mails, {
 									onSelected: () => selectNone,
 									width: referenceDom.offsetWidth - DROPDOWN_MARGIN * 2,
 								})
@@ -44,7 +46,7 @@ export class MobileMultiselectionActionToolbar {
 					icon: Icons.Eye,
 					title: "markRead_action",
 					click: () => {
-						locator.mailModel.markMails(mails, false)
+						mailModel.markMails(mails, false)
 						selectNone()
 					},
 				}),
@@ -52,7 +54,7 @@ export class MobileMultiselectionActionToolbar {
 					icon: Icons.NoEye,
 					title: "markUnread_action",
 					click: () => {
-						locator.mailModel.markMails(mails, true)
+						mailModel.markMails(mails, true)
 						selectNone()
 					},
 				}),

@@ -61,7 +61,7 @@ import { ContactCardViewer } from "../../contacts/view/ContactCardViewer.js"
 import { MultiMailViewer } from "../../mail/view/MultiMailViewer.js"
 import { ConversationViewer } from "../../mail/view/ConversationViewer.js"
 import { ConversationViewModel } from "../../mail/view/ConversationViewModel.js"
-import { ContactViewToolbar } from "../../contacts/view/ContactViewToolbar.js"
+import { ContactViewerActions } from "../../contacts/view/ContactViewerActions.js"
 import { confirmMerge, deleteContacts, writeMail } from "../../contacts/view/ContactView.js"
 import ColumnEmptyMessageBox from "../../gui/base/ColumnEmptyMessageBox.js"
 import { theme } from "../../gui/theme.js"
@@ -69,6 +69,7 @@ import { SearchResult } from "../../api/worker/search/SearchTypes.js"
 import { isSameSearchRestriction } from "../model/SearchModel.js"
 import { searchBar } from "../SearchBar.js"
 import { MobileMultiselectionActionToolbar } from "../../mail/view/MobileMultiselectionActionToolbar.js"
+import { exportContacts } from "../../contacts/VCardExporter.js"
 
 assertMainOrNode()
 
@@ -208,11 +209,12 @@ export class SearchView extends BaseTopLevelView implements TopLevelView<SearchV
 
 			return m(
 				".fill-absolute.flex.col.nav-bg",
-				m(ContactViewToolbar, {
+				m(ContactViewerActions, {
 					contacts: selectedContacts,
-					deleteAction: selectedContacts.length > 0 ? () => deleteContacts(selectedContacts) : undefined,
-					editAction: selectedContacts.length === 1 ? () => new ContactEditor(locator.entityClient, selectedContacts[0]).show() : undefined,
-					mergeAction: selectedContacts.length === 2 ? () => confirmMerge(selectedContacts[0], selectedContacts[1]) : undefined,
+					onEdit: () => new ContactEditor(locator.entityClient, selectedContacts[0]),
+					onDelete: deleteContacts,
+					onMerge: confirmMerge,
+					onExport: exportContacts,
 				}),
 				this.searchList.list?.isMultiSelectionActive() || selectedContacts.length === 0
 					? m(
@@ -246,7 +248,7 @@ export class SearchView extends BaseTopLevelView implements TopLevelView<SearchV
 			return m(
 				".flex.col.fill-absolute",
 				// Using contactViewToolbar because it will display empty
-				m(ContactViewToolbar, { contacts: [] }),
+				m(ContactViewerActions, { contacts: [], onExport: noOp, onMerge: noOp, onDelete: noOp, onEdit: noOp }),
 				m(
 					".flex-grow.rel.overflow-hidden",
 					m(ColumnEmptyMessageBox, {
@@ -344,6 +346,7 @@ export class SearchView extends BaseTopLevelView implements TopLevelView<SearchV
 						? m(MobileMultiselectionActionToolbar, {
 								mails: this.searchList.list.getSelectedEntities().map(({ entry }) => entry as Mail),
 								selectNone: () => this.searchList.selectNone(),
+								mailModel: locator.mailModel,
 						  })
 						: m(BottomNav),
 			}),

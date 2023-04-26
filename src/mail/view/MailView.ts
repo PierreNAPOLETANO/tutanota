@@ -27,7 +27,7 @@ import { size } from "../../gui/size"
 import { UserError } from "../../api/main/UserError"
 import { showUserError } from "../../misc/ErrorHandlerImpl"
 import { archiveMails, moveMails, moveToInbox, promptAndDeleteMails, showMoveMailsDropdown } from "./MailGuiUtils"
-import { getElementId, isSameId, ListElement } from "../../api/common/utils/EntityUtils"
+import { getElementId, isSameId } from "../../api/common/utils/EntityUtils"
 import { isNewMailActionAvailable } from "../../gui/nav/NavFunctions"
 import { CancelledError } from "../../api/common/error/CancelledError"
 import Stream from "mithril/stream"
@@ -51,12 +51,13 @@ import type { DesktopSystemFacade } from "../../native/common/generatedipc/Deskt
 import { CreateMailViewerOptions } from "./MailViewer.js"
 import { IconButton } from "../../gui/base/IconButton.js"
 import { BackgroundColumnLayout, MobileHeader } from "../../gui/BackgroundColumnLayout.js"
-import { List, VirtualRow } from "../../gui/base/List.js"
-import { MailViewerActions, MailViewerToolbar } from "./MailViewerToolbar.js"
+import { MailViewerActions } from "./MailViewerToolbar.js"
 import { TopAppBar } from "../../gui/TopAppBar.js"
 import { OfflineIndicatorViewModel } from "../../gui/base/OfflineIndicatorViewModel.js"
 import { theme } from "../../gui/theme.js"
 import { MobileMultiselectionActionToolbar } from "./MobileMultiselectionActionToolbar.js"
+import { SelectAllCheckbox } from "../../gui/SelectAllCheckbox.js"
+import { DesktopListToolbar, DesktopViewerToolbar } from "../../gui/DesktopListToolbar.js"
 
 assertMainOrNode()
 
@@ -139,15 +140,13 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 				view: () => {
 					const mailList = this.cache.mailList
 					return m(BackgroundColumnLayout, {
-						desktopToolbar: () => this.renderDesktopListToolbar(),
+						desktopToolbar: () => m(DesktopListToolbar, mailList ? m(SelectAllCheckbox, { list: mailList.list }) : null),
 						columnLayout: mailList ? m(mailList, { mailView: this }) : null,
 						mobileHeader: () =>
 							// FIXME is this the right condition?
 							mailList && (mailList.list.isMobileMultiSelectionActionActive() || mailList.list.isMultiSelectionActive())
 								? m(TopAppBar, {
-										// FIXME proper checkbox
-										left: this.renderSelectAll(),
-										// FIXME proepr text
+										left: m(SelectAllCheckbox, { list: mailList.list }),
 										center: m(".font-weight-600", getMailSelectionMessage(mailList.list.getSelectedEntities())),
 										right: m(IconButton, {
 											icon: Icons.Cancel,
@@ -158,12 +157,9 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 								: m(MobileHeader, {
 										title: this.listColumn.getTitle(),
 										columnType: "first",
-										// FIXME actions?
 										mobileActions: m(IconButton, {
 											icon: Icons.AddCheckCirle,
-											// FIXME translate
-											title: () => "Select multiple mails",
-											// FIXME do something
+											title: "selectMultiple_action",
 											click: () => mailList?.list.enterMobileMultiselection(),
 										}),
 										mobileRightmostButton: () => this.renderHeaderRightView(),
@@ -247,27 +243,23 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		}
 	}
 
+	private mailViewerSingleActions(viewModel: ConversationViewModel) {
+		return m(MailViewerActions, {
+			mailModel: viewModel.primaryViewModel().mailModel,
+			mailViewerViewModel: viewModel.primaryViewModel(),
+			mails: [viewModel.primaryMail],
+		})
+	}
+
 	private renderSingleMailViewer(offlineIndicatorViewModel: OfflineIndicatorViewModel, viewModel: ConversationViewModel) {
 		return m(BackgroundColumnLayout, {
 			backgroundColor: theme.navigation_bg,
-			desktopToolbar: () =>
-				m(MailViewerToolbar, {
-					mailModel: viewModel.primaryViewModel().mailModel,
-					mailViewerViewModel: viewModel.primaryViewModel(),
-					mails: [viewModel.primaryMail],
-				}),
+			desktopToolbar: () => m(DesktopViewerToolbar, this.mailViewerSingleActions(viewModel)),
 			mobileHeader: () =>
 				m(MobileHeader, {
 					viewSlider: this.viewSlider,
 					columnType: "other",
-					// FIXME more button?
-					mobileActions: styles.isSingleColumnLayout()
-						? []
-						: m(MailViewerActions, {
-								mailModel: viewModel.primaryViewModel().mailModel,
-								mailViewerViewModel: viewModel.primaryViewModel(),
-								mails: [viewModel.primaryMail],
-						  }),
+					mobileActions: styles.isSingleColumnLayout() ? [] : this.mailViewerSingleActions(viewModel),
 					mobileRightmostButton: () => this.renderHeaderRightView(),
 					offlineIndicatorModel: offlineIndicatorViewModel,
 					// FIXME translate
@@ -281,16 +273,19 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		})
 	}
 
-	private renderMultiMailViewer() {
-		const toolbarAttrs = {
+	private mailViewerMultiActions() {
+		return m(MailViewerActions, {
 			mailModel: locator.mailModel,
 			mails: this.cache.mailList?.list.getSelectedEntities() ?? [],
 			selectNone: () => this.cache.mailList?.list.selectNone(),
-		}
+		})
+	}
+
+	private renderMultiMailViewer() {
 		return m(BackgroundColumnLayout, {
 			backgroundColor: theme.navigation_bg,
-			desktopToolbar: () => m(MailViewerToolbar, toolbarAttrs),
-			mobileHeader: () => m(TopAppBar, { right: m(MailViewerActions, toolbarAttrs) }),
+			desktopToolbar: () => m(DesktopViewerToolbar, m(MailViewerActions, this.mailViewerMultiActions())),
+			mobileHeader: () => m(TopAppBar, { right: m(MailViewerActions, this.mailViewerMultiActions()) }),
 			columnLayout: m(MultiMailViewer, {
 				selectedEntities: this.cache.mailList?.list.getSelectedEntities() ?? [],
 				selectNone: () => {
@@ -346,16 +341,14 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 				},
 			},
 			m(this.viewSlider, {
-				header: styles.isUsingBottomNavigation()
-					? null
-					: m(Header, {
-							rightView: this.renderHeaderRightView(),
-							searchBar: () =>
-								m(searchBar, {
-									placeholder: lang.get("searchEmails_placeholder"),
-								}),
-							...attrs.header,
-					  }),
+				header: m(Header, {
+					rightView: this.renderHeaderRightView(),
+					searchBar: () =>
+						m(searchBar, {
+							placeholder: lang.get("searchEmails_placeholder"),
+						}),
+					...attrs.header,
+				}),
 				bottomNav:
 					styles.isSingleColumnLayout() && this.viewSlider.focusedColumn === this.mailColumn && this.conversationViewModel
 						? m(MobileMailActionBar, { viewModel: this.conversationViewModel.primaryViewModel() })
@@ -367,6 +360,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 						  m(MobileMultiselectionActionToolbar, {
 								mails: this.cache.mailList.list.getSelectedEntities(),
 								selectNone: () => this.cache.mailList?.list.selectNone(),
+								mailModel: locator.mailModel,
 						  })
 						: m(BottomNav),
 			}),
@@ -951,36 +945,5 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 	private async showFolderAddEditDialog(mailGroupId: Id, folder: MailFolder | null, parentFolder: MailFolder | null) {
 		const mailboxDetail = await locator.mailModel.getMailboxDetailsForMailGroup(mailGroupId)
 		await showEditFolderDialog(mailboxDetail, folder, parentFolder)
-	}
-
-	private renderDesktopListToolbar(): Children {
-		return m(".flex.pt-xs.pb-xs.items-center", [
-			// matching MailRow spacing here
-			this.renderSelectAll(),
-		])
-	}
-
-	private renderSelectAll(): Children {
-		const mailList = this.cache.mailList
-		return m(
-			".flex.items-center.pl-s.mlr.button-height",
-			mailList
-				? m("input.checkbox", {
-						type: "checkbox",
-						title: lang.get("selectAllLoaded_action"),
-						// I'm not sure this is the best condition but it will do for now
-						checked: mailList.list.isAllSelected(),
-						onchange: ({ target }: Event) => this.changeSelectAll(mailList.list, (target as HTMLInputElement).checked),
-				  })
-				: null,
-		)
-	}
-
-	private changeSelectAll(list: List<ListElement, VirtualRow<ListElement>>, selectAll: boolean): void {
-		if (selectAll) {
-			list.selectAll()
-		} else {
-			list.selectNone()
-		}
 	}
 }

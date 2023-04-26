@@ -24,7 +24,7 @@ export class ContactCardViewer implements Component<ContactCardAttrs> {
 					style: {
 						border: `1px solid ${theme.list_border}`,
 						backgroundColor: theme.content_bg,
-						marginTop: px(conversationCardMargin),
+						marginTop: px(conversationCardMargin / 2),
 					},
 				},
 				m(ContactViewer, { contact, onWriteMail }),

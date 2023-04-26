@@ -7,16 +7,13 @@ import { ContactTypeRef } from "../../api/entities/tutanota/TypeRefs.js"
 import { getContactListName } from "../model/ContactUtils"
 import { lang } from "../../misc/LanguageViewModel"
 import { NotFoundError } from "../../api/common/error/RestError"
-import { px, size } from "../../gui/size"
+import { size } from "../../gui/size"
 import { locator } from "../../api/main/MainLocator"
 import { GENERATED_MAX_ID } from "../../api/common/utils/EntityUtils"
 import { ListColumnWrapper } from "../../gui/ListColumnWrapper"
 import { compareContacts } from "./ContactGuiUtils"
 import { NBSP, ofClass } from "@tutao/tutanota-utils"
 import { assertMainOrNode } from "../../api/common/Env"
-import { IconButton } from "../../gui/base/IconButton.js"
-import { Icons } from "../../gui/base/icons/Icons.js"
-import { createDropdown } from "../../gui/base/Dropdown.js"
 import { checkboxOpacity, SelectableRowContainer, setSelectedRowStyle } from "../../gui/SelectableRowContainer.js"
 import { styles } from "../../gui/styles.js"
 
@@ -27,7 +24,7 @@ export class ContactListView {
 	readonly listId: Id
 	readonly contactView: ContactView
 	readonly list: List<Contact, ContactRow>
-	private sortByFirstName = true
+	sortByFirstName = true
 
 	constructor(contactListId: Id, contactView: ContactView) {
 		this.listId = contactListId
@@ -76,71 +73,10 @@ export class ContactListView {
 		return m(
 			ListColumnWrapper,
 			{
-				headerContent: this.renderToolbar(),
+				headerContent: null,
 			},
 			m(this.list),
 		)
-	}
-
-	private renderToolbar(): Children {
-		return m(".flex.pt-xs.pb-xs.items-center.flex-space-between.pr-s.list-border-bottom", [
-			// matching ContactRow spacing here
-			m(
-				".flex.items-center.pl-s.mlr",
-				{
-					style: {
-						height: px(size.button_height),
-					},
-				},
-				this.renderSelectAll(),
-			),
-			m(IconButton, {
-				title: "sortBy_label",
-				icon: Icons.ListOrdered,
-				click: (e: MouseEvent, dom: HTMLElement) => {
-					createDropdown({
-						lazyButtons: () => [
-							{
-								label: "firstName_placeholder",
-								click: () => {
-									this.sortByFirstName = true
-									this.list.sort()
-								},
-							},
-							{
-								label: "lastName_placeholder",
-								click: () => {
-									this.sortByFirstName = false
-									this.list.sort()
-								},
-							},
-						],
-					})(e, dom)
-				},
-			}),
-		])
-	}
-
-	private renderSelectAll(): Children {
-		if (styles.isSingleColumnLayout()) {
-			return null
-		} else {
-			return m("input.checkbox", {
-				type: "checkbox",
-				title: lang.get("selectAllLoaded_action"),
-				// I'm not sure this is the best condition but it will do for now
-				checked: this.list.isAllSelected(),
-				onchange: ({ target }: Event) => this.changeSelectAll((target as HTMLInputElement).checked),
-			})
-		}
-	}
-
-	private changeSelectAll(selectAll: boolean): void {
-		if (selectAll) {
-			this.list.selectAll()
-		} else {
-			this.list.selectNone()
-		}
 	}
 }
 

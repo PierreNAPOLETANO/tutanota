@@ -11,7 +11,6 @@ import { showUserError } from "../../misc/ErrorHandlerImpl.js"
 import { createAsyncDropdown, createDropdown, DropdownButtonAttrs } from "../../gui/base/Dropdown.js"
 import { editDraft, mailViewerMoreActions, makeAssignMailsButtons } from "./MailViewerUtils.js"
 import { ButtonColor } from "../../gui/base/Button.js"
-import { px, size } from "../../gui/size.js"
 import { isApp } from "../../api/common/Env.js"
 import { locator } from "../../api/main/MainLocator.js"
 import { showProgressDialog } from "../../gui/dialogs/ProgressDialog.js"
@@ -204,16 +203,5 @@ export class MailViewerActions implements Component<MailViewerToolbarAttrs> {
 			click: () => editDraft(viewModel),
 			icon: Icons.Edit,
 		})
-	}
-}
-
-export class MailViewerToolbar implements Component<MailViewerToolbarAttrs> {
-	view(vnode: Vnode<MailViewerToolbarAttrs>): Children {
-		return m(
-			".flex.pt-xs.pb-xs.plr-m",
-			// Height keeps the toolbar showing for consistency, even if there are no actions
-			m(".flex-grow", { style: { height: px(size.button_height) } }),
-			m(MailViewerActions, vnode.attrs),
-		)
 	}
 }
