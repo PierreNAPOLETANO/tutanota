@@ -14,6 +14,9 @@ import { ImapImportFacade } from "../../../native/common/generatedipc/ImapImport
 import { uint8ArrayToString } from "@tutao/tutanota-utils"
 import { sha256Hash } from "@tutao/tutanota-crypto"
 import { MaybePromise } from "rollup"
+import { SuspensionError } from "../../common/error/SuspensionError.js"
+
+const DEFAULT_POSTPONE_TIME = 120 * 1000
 
 export interface InitializeImapImportParams {
 	host: string
@@ -60,6 +63,11 @@ export class ImapImporter implements ImapImportFacade {
 			return this.imapImportState
 		}
 
+		if (this.imapImportState.state == ImportState.POSTPONED && this.imapImportState.postponedUntil.getTime() > Date.now()) {
+			this.imapImportState.state = ImportState.POSTPONED
+			return this.imapImportState
+		}
+
 		this.importImapAccountSyncState = await this.loadImportImapAccountSyncState()
 
 		if (this.importImapAccountSyncState == null) {
@@ -97,6 +105,19 @@ export class ImapImporter implements ImapImportFacade {
 	async pauseImport(): Promise<ImapImportState> {
 		await this.imapImportSystemFacade.stopImport()
 		this.imapImportState = new ImapImportState(ImportState.PAUSED)
+		return this.imapImportState
+	}
+
+	async postponeImport(postponedUntil: Date): Promise<ImapImportState> {
+		await this.imapImportSystemFacade.stopImport()
+
+		if (this.importImapAccountSyncState != null) {
+			await this.importImapFacade.postponeImapImport(postponedUntil, this.importImapAccountSyncState?._id)
+			this.imapImportState = new ImapImportState(ImportState.POSTPONED, postponedUntil)
+		} else {
+			this.imapImportState = new ImapImportState(ImportState.NOT_INITIALIZED)
+		}
+
 		return this.imapImportState
 	}
 
@@ -214,9 +235,6 @@ export class ImapImporter implements ImapImportFacade {
 	}
 
 	async onMailbox(imapMailbox: ImapMailbox, eventType: AdSyncEventType): Promise<void> {
-		console.log("onMailbox")
-		console.log(imapMailbox)
-
 		if (this.importImapAccountSyncState == null) {
 			throw new ProgrammingError("onMailbox event received but importImapAccountSyncState not initialized!")
 		}
@@ -229,7 +247,7 @@ export class ImapImporter implements ImapImportFacade {
 					parentFolderId = parentFolderSyncState?.mailFolder ? parentFolderSyncState.mailFolder : null
 				}
 
-				let newFolderSyncState = await this.importImapFacade.createImportMailFolder(imapMailbox, this.importImapAccountSyncState, parentFolderId)
+				let newFolderSyncState = await this.importImapFacade.createImportMailFolder(imapMailbox, this.importImapAccountSyncState._id, parentFolderId)
 
 				if (newFolderSyncState) {
 					this.importImapFolderSyncStates?.push(newFolderSyncState)
@@ -245,9 +263,6 @@ export class ImapImporter implements ImapImportFacade {
 	}
 
 	async onMailboxStatus(imapMailboxStatus: ImapMailboxStatus): Promise<void> {
-		console.log("onMailboxStatus")
-		console.log(imapMailboxStatus)
-
 		if (this.importImapFolderSyncStates === undefined) {
 			throw new ProgrammingError("onMailboxStatus event received but importImapFolderSyncStates not initialized!")
 		}
@@ -264,9 +279,6 @@ export class ImapImporter implements ImapImportFacade {
 	}
 
 	async onMail(imapMail: ImapMail, eventType: AdSyncEventType): Promise<void> {
-		//console.log("onMail")
-		//console.log(imapMail)
-
 		// TODO remove after evaluation
 		this.testMailCounter += 1
 
@@ -281,9 +293,11 @@ export class ImapImporter implements ImapImportFacade {
 
 			switch (eventType) {
 				case AdSyncEventType.CREATE:
-					// TODO handle Tutanota rate limits
-					// if rate limit -> stop adSync and postpone
-					this.importMailFacade.importMail(importMailParams)
+					this.importMailFacade.importMail(importMailParams).catch((error) => {
+						if (error instanceof SuspensionError) {
+							this.postponeImport(new Date(Date.now() + (error.suspensionTime ? parseInt(error.suspensionTime) : DEFAULT_POSTPONE_TIME)))
+						}
+					})
 					break
 				case AdSyncEventType.UPDATE:
 					//this.importMailFacade.updateMail(importMailParams) // TODO update mail properties through existing tutanota apis (unread / read, etc)
@@ -296,17 +310,12 @@ export class ImapImporter implements ImapImportFacade {
 		return Promise.resolve()
 	}
 
-	onPostpone(postponedUntil: Date): Promise<void> {
-		console.log("onPostpone")
-		console.log(postponedUntil)
-
-		this.imapImportState = new ImapImportState(ImportState.POSTPONED, postponedUntil)
+	async onPostpone(postponedUntil: Date): Promise<void> {
+		await this.postponeImport(postponedUntil)
 		return Promise.resolve()
 	}
 
 	onFinish(downloadedQuota: number): Promise<void> {
-		console.log("onFinish")
-
 		// TODO remove after evaluation
 		let downloadTime = Date.now() - this.testDownloadStartTime.getTime()
 		console.log("Downloaded data (byte): " + downloadedQuota)
@@ -319,9 +328,6 @@ export class ImapImporter implements ImapImportFacade {
 	}
 
 	onError(imapError: ImapError): Promise<void> {
-		console.log("onError")
-		console.log(imapError)
-
 		return Promise.resolve()
 	}
 }

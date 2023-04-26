@@ -16,7 +16,7 @@ export enum SyncSessionProcessState {
 	NOT_STARTED,
 	STOPPED,
 	RUNNING,
-	CONNECTION_FAILED_UNKOWN,
+	CONNECTION_FAILED_UNKNOWN,
 	CONNECTION_FAILED_NO
 }
 
@@ -51,7 +51,7 @@ export class ImapSyncSessionProcess {
 			tls: {
 				rejectUnauthorized: false, // TODO deactivate after testing
 			},
-			logger: false,
+			logger: true,
 			auth: {
 				user: imapAccount.username,
 				pass: imapAccount.password,
@@ -68,12 +68,11 @@ export class ImapSyncSessionProcess {
 				this.state = SyncSessionProcessState.RUNNING
 			}
 		} catch (error) {
-			// if the error response includes NO, we most probably exceeded the maximum amount of allowed connections
-			if (error.includes("NO")) { // TODO better check if authentication failed?
-				this.state = SyncSessionProcessState.CONNECTION_FAILED_NO
-			} else {
-				this.state = SyncSessionProcessState.CONNECTION_FAILED_UNKOWN
-			}
+			// TODO we most probably did run in a rate limit
+			// TODO QRESYNC is an issue if the import got postponed, but we have a new modseq somehow and did not finish loading all emails for this modseq ...
+			// https://www.rfc-editor.org/rfc/rfc7162.html#section-3.1.4
+			// modsequences should therefore only be used once the complete fetch call is finished ... update in batch --> otherwise cancel batch
+			this.state = SyncSessionProcessState.CONNECTION_FAILED_NO
 		}
 		return this.state
 	}

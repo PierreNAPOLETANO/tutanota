@@ -110,7 +110,7 @@ export class ImapSyncSession implements SyncSessionEventListener {
 			tls: {
 				rejectUnauthorized: false, // TODO deactivate after testing
 			},
-			logger: false,
+			logger: true,
 			auth: {
 				user: imapAccount.username,
 				pass: imapAccount.password,
@@ -203,7 +203,7 @@ export class ImapSyncSession implements SyncSessionEventListener {
 			syncSessionProcess.startSyncSessionProcess(this.imapSyncState.imapAccount, this.adSyncEventListener).then((state) => {
 				if (state == SyncSessionProcessState.CONNECTION_FAILED_NO) {
 					this.adSyncOptimizer?.forceStopSyncSessionProcess(processId, true)
-				} else if (state == SyncSessionProcessState.CONNECTION_FAILED_UNKOWN) {
+				} else if (state == SyncSessionProcessState.CONNECTION_FAILED_UNKNOWN) {
 					this.adSyncOptimizer?.forceStopSyncSessionProcess(processId, false)
 				} else {
 					if (this.adSyncConfig.isEnableDownloadBlockSizeOptimizer && this.state == SyncSessionState.RUNNING) {

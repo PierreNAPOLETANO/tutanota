@@ -7,7 +7,7 @@ const defaultAdSyncConfig: AdSyncConfig = {
 	isEnableDownloadBlockSizeOptimizer: true,
 	parallelProcessesOptimizationDifference: 2,
 	downloadBlockSizeOptimizationDifference: 100,
-	isEnableImapQresync: true,
+	isEnableImapQresync: false,
 }
 
 export interface AdSyncConfig {

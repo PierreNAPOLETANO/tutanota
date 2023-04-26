@@ -62,7 +62,7 @@ export class DifferentialUidLoader {
 			return [] // delete events are handle automatically by IMAP QRESYNC extension
 		}
 
-		let mails = await this.imapClient.fetch(`1:*`, { uid: true }, {})
+		let mails = await this.imapClient.fetch(`1:*`, { uid: true }, { uid: true })
 
 		for await (const mail of mails) {
 			let uid = mail.uid

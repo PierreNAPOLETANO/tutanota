@@ -14,8 +14,6 @@ import {
 	FileTypeRef,
 	ImportAttachment,
 	ImportMailDataMailReference,
-	Mail,
-	MailTypeRef,
 } from "../../../entities/tutanota/TypeRefs.js"
 import { byteLength, neverNull, promiseMap } from "@tutao/tutanota-utils"
 import { UNCOMPRESSED_MAX_SIZE } from "../../Compression.js"
@@ -28,6 +26,7 @@ import { BlobFacade } from "./BlobFacade.js"
 import { NativeFileApp } from "../../../../native/common/FileApp.js"
 import { CryptoFacade, encryptString } from "../../crypto/CryptoFacade.js"
 import { DataFile } from "../../../common/DataFile.js"
+import { SuspensionBehavior } from "../../rest/RestClient.js"
 
 export interface ImapImportTutanotaFileId {
 	readonly _type: "ImapImportTutanotaFileId"
@@ -106,7 +105,7 @@ export class ImportMailFacade {
 						 imapUid,
 						 imapModSeq,
 						 imapFolderSyncState,
-					 }: ImportMailParams): Promise<Mail> {
+					 }: ImportMailParams): Promise<void> {
 		if (byteLength(bodyText) > UNCOMPRESSED_MAX_SIZE) {
 			throw new MailBodyTooLargeError(`Can not import mail, mail body too large (${byteLength(bodyText)})`)
 		}
@@ -146,8 +145,7 @@ export class ImportMailFacade {
 			importedAttachments: await this._createAddedImportAttachments(attachments, mailGroupId, mailGroupKey),
 		})
 
-		const importMailPostOut = await this.serviceExecutor.post(ImportMailService, service, { sessionKey: sk })
-		return this.entityClient.load(MailTypeRef, importMailPostOut.mail)
+		await this.serviceExecutor.post(ImportMailService, service, { sessionKey: sk, suspensionBehavior: SuspensionBehavior.Throw })
 	}
 
 	/**

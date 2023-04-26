@@ -37,7 +37,8 @@ export class ImportImapFacade {
 		private readonly mailFacade: MailFacade,
 		private readonly serviceExecutor: IServiceExecutor,
 		private readonly entityClient: EntityClient,
-	) {}
+	) {
+	}
 
 	async initializeImapImport(initializeParams: InitializeImapImportParams): Promise<ImportImapAccountSyncState> {
 		const mailGroupId = this.userFacade.getGroupId(GroupType.Mail)
@@ -91,9 +92,20 @@ export class ImportImapFacade {
 		return this.entityClient.load(ImportImapAccountSyncStateTypeRef, importImapAccountSyncState._id)
 	}
 
+	async postponeImapImport(postponedUntil: Date, importImapAccountSyncStateId: Id): Promise<ImportImapAccountSyncState> {
+		const mailGroupId = this.userFacade.getGroupId(GroupType.Mail)
+
+		const importImapAccountSyncState = await this.entityClient.load(ImportImapAccountSyncStateTypeRef, importImapAccountSyncStateId)
+		importImapAccountSyncState.postponedUntil = postponedUntil.getTime().toString()
+
+		await this.entityClient.update(importImapAccountSyncState)
+
+		return importImapAccountSyncState
+	}
+
 	async createImportMailFolder(
 		imapMailbox: ImapMailbox,
-		accountSyncState: ImportImapAccountSyncState,
+		importImapAccountSyncStateId: Id,
 		parentFolderId: IdTuple | null,
 	): Promise<ImportImapFolderSyncState | undefined> {
 		if (imapMailbox.name) {
@@ -106,7 +118,7 @@ export class ImportImapFacade {
 				ownerEncSessionKey: encryptKey(mailGroupKey, sk),
 				ownerGroup: mailGroupId,
 				path: imapMailbox.path,
-				imapAccountSyncState: accountSyncState._id,
+				imapAccountSyncState: importImapAccountSyncStateId,
 				mailFolder: newMailFolder._id,
 			})
 
