@@ -5,6 +5,7 @@ import { AdSyncEventType } from "./AdSyncEventType.js"
 import { ImapMailboxStatus } from "./ImapMailboxStatus.js"
 import { ImapMail } from "./ImapMail.js"
 import { ImapError } from "./ImapError.js"
+
 /**
  * Facade implemented by the web worker, receiving IMAP import events.
  */

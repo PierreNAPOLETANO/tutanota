@@ -1,0 +1,7 @@
+{
+	"isEnableParallelProcessesOptimizer": true,
+	"isEnableDownloadBlockSizeOptimizer": true,
+	"parallelProcessesOptimizationDifference": 1,
+	"downloadBlockSizeOptimizationDifference": 10,
+	"isEnableImapQresync": false
+}

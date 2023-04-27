@@ -70,6 +70,7 @@ export class ImapSyncSessionMailbox {
 			.map(([_timeStamp, throughput]) => {
 				return throughput
 			})
+		console.log(throughputsInTimeInterval.toString())
 		let averageThroughputInTimeInterval = getAverageOfList(throughputsInTimeInterval)
 		this.averageThroughputInTimeIntervalHistory.set(`${fromTimeStamp}${toTimeStamp}`, averageThroughputInTimeInterval)
 		return averageThroughputInTimeInterval

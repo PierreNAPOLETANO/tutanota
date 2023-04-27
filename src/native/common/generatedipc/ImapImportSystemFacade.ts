@@ -1,6 +1,7 @@
 /* generated file, don't edit. */
 
 import { ImapSyncState } from "./ImapSyncState.js"
+import { LogSourceType } from "./LogSourceType.js"
 /**
  * Facade implemented by the native desktop client starting and stopping an IMAP import.
  */
@@ -14,4 +15,9 @@ export interface ImapImportSystemFacade {
 	 * Stop a running IMAP import.
 	 */
 	stopImport(): Promise<void>
+
+	/**
+	 * Write data to evaluation log files.
+	 */
+	writeToLog(logText: string, logSourceType: LogSourceType): Promise<void>
 }

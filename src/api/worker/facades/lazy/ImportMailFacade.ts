@@ -63,6 +63,8 @@ export interface ImportMailParams {
 	imapUid: number
 	imapModSeq: BigInt | null
 	imapFolderSyncState: IdTuple
+	mailSize: number
+	imapPath: string
 }
 
 /**
@@ -78,34 +80,35 @@ export class ImportMailFacade {
 		private readonly blobFacade: BlobFacade,
 		private readonly fileApp: NativeFileApp,
 		private readonly crypto: CryptoFacade,
-	) {
-	}
+	) {}
 
 	async importMail({
-						 subject,
-						 bodyText,
-						 sentDate,
-						 receivedDate,
-						 state,
-						 unread,
-						 messageId,
-						 inReplyTo,
-						 references,
-						 senderMailAddress,
-						 senderName,
-						 method,
-						 replyType,
-						 differentEnvelopeSender,
-						 headers,
-						 replyTos,
-						 toRecipients,
-						 ccRecipients,
-						 bccRecipients,
-						 attachments,
-						 imapUid,
-						 imapModSeq,
-						 imapFolderSyncState,
-					 }: ImportMailParams): Promise<void> {
+		subject,
+		bodyText,
+		sentDate,
+		receivedDate,
+		state,
+		unread,
+		messageId,
+		inReplyTo,
+		references,
+		senderMailAddress,
+		senderName,
+		method,
+		replyType,
+		differentEnvelopeSender,
+		headers,
+		replyTos,
+		toRecipients,
+		ccRecipients,
+		bccRecipients,
+		attachments,
+		imapUid,
+		imapModSeq,
+		imapFolderSyncState,
+		mailSize,
+		imapPath,
+	}: ImportMailParams): Promise<void> {
 		if (byteLength(bodyText) > UNCOMPRESSED_MAX_SIZE) {
 			throw new MailBodyTooLargeError(`Can not import mail, mail body too large (${byteLength(bodyText)})`)
 		}
@@ -145,7 +148,11 @@ export class ImportMailFacade {
 			importedAttachments: await this._createAddedImportAttachments(attachments, mailGroupId, mailGroupKey),
 		})
 
-		await this.serviceExecutor.post(ImportMailService, service, { sessionKey: sk, suspensionBehavior: SuspensionBehavior.Throw })
+		const mailSizeString = mailSize.toString()
+		const imapUidString = imapUid.toString()
+		const imapPathString = imapPath.toString()
+		let extraHeaders: Dict = { mailSizeString, imapUidString, imapPathString }
+		await this.serviceExecutor.post(ImportMailService, service, { sessionKey: sk, suspensionBehavior: SuspensionBehavior.Throw, extraHeaders })
 	}
 
 	/**

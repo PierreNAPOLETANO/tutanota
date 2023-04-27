@@ -13,4 +13,7 @@ export class ImapImportSystemFacadeSendDispatcher implements ImapImportSystemFac
 	async stopImport(...args: Parameters<ImapImportSystemFacade["stopImport"]>) {
 		return this.transport.invokeNative("ipc", ["ImapImportSystemFacade", "stopImport", ...args])
 	}
+	async writeToLog(...args: Parameters<ImapImportSystemFacade["writeToLog"]>) {
+		return this.transport.invokeNative("ipc", ["ImapImportSystemFacade", "writeToLog", ...args])
+	}
 }

@@ -15,6 +15,7 @@ import { uint8ArrayToString } from "@tutao/tutanota-utils"
 import { sha256Hash } from "@tutao/tutanota-crypto"
 import { MaybePromise } from "rollup"
 import { SuspensionError } from "../../common/error/SuspensionError.js"
+import { LogSourceType } from "../../../desktop/imapimport/adsync/utils/AdSyncLogger.js"
 
 const DEFAULT_POSTPONE_TIME = 120 * 1000
 
@@ -42,8 +43,7 @@ export class ImapImporter implements ImapImportFacade {
 		private readonly imapImportSystemFacade: ImapImportSystemFacade,
 		private readonly importImapFacade: ImportImapFacade,
 		private readonly importMailFacade: ImportMailFacade,
-	) {
-	}
+	) {}
 
 	async initializeImport(initializeParams: InitializeImapImportParams): Promise<ImapImportState> {
 		let importImapAccountSyncState = await this.loadImportImapAccountSyncState()
@@ -234,6 +234,10 @@ export class ImapImporter implements ImapImportFacade {
 		return Promise.all(deduplicatedAttachments)
 	}
 
+	async writeToLog(logText: string, logSourceType: LogSourceType) {
+		await this.imapImportSystemFacade.writeToLog(logText, logSourceType)
+	}
+
 	async onMailbox(imapMailbox: ImapMailbox, eventType: AdSyncEventType): Promise<void> {
 		if (this.importImapAccountSyncState == null) {
 			throw new ProgrammingError("onMailbox event received but importImapAccountSyncState not initialized!")
@@ -322,6 +326,12 @@ export class ImapImporter implements ImapImportFacade {
 		console.log("Took (ms): " + downloadTime)
 		console.log("Average throughput (bytes/ms): " + downloadedQuota / downloadTime)
 		console.log("# amount of mails downloaded: " + this.testMailCounter)
+		this.writeToLog(
+			`${this.testDownloadStartTime.getTime()}, ${Date.now()}, ${downloadTime}, onAllMailboxesFinish, ${downloadedQuota}, ${
+				downloadedQuota / downloadTime
+			}, ${this.testMailCounter}`,
+			LogSourceType.SYSTEM,
+		)
 
 		this.imapImportState = new ImapImportState(ImportState.FINISHED)
 		return Promise.resolve()

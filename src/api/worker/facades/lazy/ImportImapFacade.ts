@@ -37,8 +37,7 @@ export class ImportImapFacade {
 		private readonly mailFacade: MailFacade,
 		private readonly serviceExecutor: IServiceExecutor,
 		private readonly entityClient: EntityClient,
-	) {
-	}
+	) {}
 
 	async initializeImapImport(initializeParams: InitializeImapImportParams): Promise<ImportImapAccountSyncState> {
 		const mailGroupId = this.userFacade.getGroupId(GroupType.Mail)

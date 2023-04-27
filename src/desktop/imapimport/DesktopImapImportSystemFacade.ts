@@ -6,16 +6,17 @@ import { ImapError } from "./adsync/imapmail/ImapError.js"
 import { ImapMail } from "./adsync/imapmail/ImapMail.js"
 import { ImapMailbox, ImapMailboxStatus } from "./adsync/imapmail/ImapMailbox.js"
 import { ApplicationWindow } from "../ApplicationWindow.js"
+import { LogSourceType } from "./adsync/utils/AdSyncLogger.js"
+import { FsExports } from "../ElectronExportTypes.js"
 
 export class DesktopImapImportSystemFacade implements ImapImportSystemFacade, AdSyncEventListener {
-	constructor(private readonly win: ApplicationWindow) {
-	}
+	constructor(private readonly win: ApplicationWindow, private readonly fs: FsExports) {}
 
 	private imapAdSync?: ImapAdSync
 
 	startImport(imapSyncState: ImapSyncState): Promise<void> {
 		if (this.imapAdSync === undefined) {
-			this.imapAdSync = new ImapAdSync(this)
+			this.imapAdSync = new ImapAdSync(this, this.fs)
 		}
 		this.imapAdSync?.startAdSync(imapSyncState)
 		return Promise.resolve()
@@ -23,6 +24,11 @@ export class DesktopImapImportSystemFacade implements ImapImportSystemFacade, Ad
 
 	stopImport(): Promise<void> {
 		this.imapAdSync?.stopAdSync()
+		return Promise.resolve()
+	}
+
+	writeToLog(logText: string, logSourceType: LogSourceType): Promise<void> {
+		this.imapAdSync?.adSyncLogger?.writeToLog(logText, logSourceType)
 		return Promise.resolve()
 	}
 

@@ -24,7 +24,6 @@ export class ImapMailboxStatus {
 	}
 
 	static fromImapFlowStatusObject(statusObject: StatusObject): ImapMailboxStatus {
-
 		let imapMailboxStatus = new ImapMailboxStatus(statusObject.path, statusObject.uidNext!, statusObject.uidValidity!)
 			.setMessageCount(statusObject.messages)
 			.setHighestModSeq(statusObject.highestModseq)

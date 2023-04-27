@@ -1,0 +1,7 @@
+{
+	"name": "LogSourceType",
+	"type": "typeref",
+	"location": {
+		"typescript": "../src/desktop/imapimport/adsync/utils/AdSyncLogger.js"
+	}
+}

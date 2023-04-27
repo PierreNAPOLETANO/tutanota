@@ -18,6 +18,7 @@ import { assertThrows, verify } from "@tutao/tutanota-test-utils"
 import { ProgrammingError } from "../../../../../src/api/common/error/ProgrammingError"
 import { AuthDataProvider } from "../../../../../src/api/worker/facades/UserFacade"
 import { LoginIncompleteError } from "../../../../../src/api/common/error/LoginIncompleteError.js"
+import { ImapImporter } from "../../../../../src/api/worker/imapimport/ImapImporter.js"
 
 const { anything } = matchers
 
@@ -30,6 +31,7 @@ o.spec("ServiceExecutor", function () {
 	let authHeaders: Record<string, string>
 	let instanceMapper: InstanceMapper
 	let cryptoFacade: CryptoFacade
+	let imapImporter: ImapImporter
 	let executor: ServiceExecutor
 	let fullyLoggedIn: boolean
 
@@ -48,7 +50,7 @@ o.spec("ServiceExecutor", function () {
 		}
 		instanceMapper = object()
 		cryptoFacade = object()
-		executor = new ServiceExecutor(restClient, authDataProvider, instanceMapper, () => cryptoFacade)
+		executor = new ServiceExecutor(restClient, authDataProvider, instanceMapper, () => cryptoFacade, imapImporter)
 	})
 
 	function assertThatNoRequestsWereMade() {

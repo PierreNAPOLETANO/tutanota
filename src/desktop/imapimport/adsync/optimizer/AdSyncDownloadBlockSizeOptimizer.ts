@@ -1,15 +1,18 @@
 import { AdSyncOptimizer, THROUGHPUT_THRESHOLD } from "./AdSyncOptimizer.js"
 import { ImapSyncSessionMailbox } from "../ImapSyncSessionMailbox.js"
+import { AdSyncLogger, LogSourceType } from "../utils/AdSyncLogger.js"
 
 const OPTIMIZATION_INTERVAL = 10 // in seconds
 
 export class AdSyncDownloadBlockSizeOptimizer extends AdSyncOptimizer {
 	protected _optimizedSyncSessionMailbox: ImapSyncSessionMailbox
 	protected scheduler?: NodeJS.Timer
+	protected adSyncLogger: AdSyncLogger
 
-	constructor(syncSessionMailbox: ImapSyncSessionMailbox, optimizationDifference: number) {
+	constructor(syncSessionMailbox: ImapSyncSessionMailbox, optimizationDifference: number, adSyncLogger: AdSyncLogger) {
 		super(optimizationDifference)
 		this._optimizedSyncSessionMailbox = syncSessionMailbox
+		this.adSyncLogger = adSyncLogger
 	}
 
 	override startAdSyncOptimizer(): void {
@@ -29,6 +32,7 @@ export class AdSyncDownloadBlockSizeOptimizer extends AdSyncOptimizer {
 			currentInterval.toTimeStamp,
 		)
 		let averageThroughputLast = this.optimizedSyncSessionMailbox.getAverageThroughputInTimeInterval(lastInterval.fromTimeStamp, lastInterval.toTimeStamp)
+
 		console.log(
 			"(DownloadBlockSizeOptimizer -> " +
 				this.optimizedSyncSessionMailbox.mailboxState.path +
@@ -61,5 +65,10 @@ export class AdSyncDownloadBlockSizeOptimizer extends AdSyncOptimizer {
 		}
 
 		this.optimizerUpdateTimeStampHistory.push(currentInterval.toTimeStamp)
+
+		this.adSyncLogger.writeToLog(
+			`${currentInterval.fromTimeStamp}, ${currentInterval.toTimeStamp}, ${averageThroughputCurrent}, ${downloadBlockSizeCurrent}, ${downloadBlockSizeDidIncrease}, ${this.optimizedSyncSessionMailbox.mailboxState.path}\n`,
+			LogSourceType.DOWNLOAD_BLOCK_SIZE_OPTIMIZER,
+		)
 	}
 }

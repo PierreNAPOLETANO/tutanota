@@ -18,6 +18,18 @@
 			"doc": "Stop a running IMAP import.",
 			"arg": [],
 			"ret": "void"
+		},
+		"writeToLog": {
+			"doc": "Write data to evaluation log files.",
+			"arg": [
+				{
+					"logText": "string"
+				},
+				{
+					"logSourceType": "LogSourceType"
+				}
+			],
+			"ret": "void"
 		}
 	}
 }

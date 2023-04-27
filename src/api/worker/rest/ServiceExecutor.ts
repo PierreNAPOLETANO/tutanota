@@ -19,6 +19,8 @@ import { assertWorkerOrNode } from "../../common/Env"
 import { ProgrammingError } from "../../common/error/ProgrammingError"
 import { AuthDataProvider } from "../facades/UserFacade"
 import { LoginIncompleteError } from "../../common/error/LoginIncompleteError.js"
+import { LogSourceType } from "../../../desktop/imapimport/adsync/utils/AdSyncLogger.js"
+import { locator } from "../WorkerLocator.js"
 
 assertWorkerOrNode()
 
@@ -85,11 +87,43 @@ export class ServiceExecutor implements IServiceExecutor {
 
 		const modelVersion = await this.getModelVersion(methodDefinition)
 
+		let mailSize = ""
+		let imapUid = ""
+		let imapPath = ""
+
+		let headers = {}
+		if (service.name.toLowerCase() === "importmailservice") {
+			mailSize = params?.extraHeaders ? params?.extraHeaders["mailSizeString"] : "-1"
+			imapUid = params?.extraHeaders ? params?.extraHeaders["imapUidString"] : "-1"
+			imapPath = params?.extraHeaders ? params?.extraHeaders["imapPathString"] : "-1"
+			headers = { ...this.authDataProvider.createAuthHeaders(), undefined, v: modelVersion }
+		} else {
+			headers = { ...this.authDataProvider.createAuthHeaders(), ...params?.extraHeaders, v: modelVersion }
+		}
+
 		const path = `/rest/${service.app.toLowerCase()}/${service.name.toLowerCase()}`
-		const headers = { ...this.authDataProvider.createAuthHeaders(), ...params?.extraHeaders, v: modelVersion }
 
+		let imapImporter = await locator.imapImporter()
+
+		let encryptionStartTime = 0
+		if (service.name.toLowerCase() === "importmailservice") {
+			let encryptionStartTime = Date.now()
+		}
 		const encryptedEntity = await this.encryptDataIfNeeded(methodDefinition, requestEntity, service, method, params ?? null)
+		if (service.name.toLowerCase() === "importmailservice") {
+			let encryptionEndTime = Date.now()
+			let encryptionTime = encryptionEndTime - encryptionStartTime
+			let currenThroughput = parseInt(mailSize) / encryptionTime
+			imapImporter.writeToLog(
+				`${encryptionStartTime}, ${encryptionEndTime}, ${encryptionTime}, ${currenThroughput}, ${mailSize}, ${imapUid}, ${imapPath}\n`,
+				LogSourceType.MAIL_ENCRYPTION,
+			)
+		}
 
+		let mailUploadStartTime = 0
+		if (service.name.toLowerCase() === "importmailservice") {
+			let mailUploadStartTime = Date.now()
+		}
 		const data: string | undefined = await this.restClient.request(path, method, {
 			queryParams: params?.queryParams,
 			headers,
@@ -97,6 +131,15 @@ export class ServiceExecutor implements IServiceExecutor {
 			body: encryptedEntity ?? undefined,
 			suspensionBehavior: params?.suspensionBehavior,
 		})
+		if (service.name.toLowerCase() === "importmailservice") {
+			let mailUploadEndTime = Date.now()
+			let mailUploadTime = mailUploadEndTime - mailUploadStartTime
+			let currenThroughput = parseInt(mailSize) / mailUploadTime
+			imapImporter.writeToLog(
+				`${encryptionStartTime}, ${mailUploadEndTime}, ${mailUploadTime}, ${currenThroughput}, ${mailSize}, ${imapUid}, ${imapPath}\n`,
+				LogSourceType.MAIL_UPLOAD,
+			)
+		}
 
 		if (methodDefinition.return) {
 			return await this.decryptResponse(methodDefinition.return, data as string, params)

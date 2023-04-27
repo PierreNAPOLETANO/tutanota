@@ -1,6 +1,7 @@
 /* generated file, don't edit. */
 
 import { ImapSyncState } from "./ImapSyncState.js"
+import { LogSourceType } from "./LogSourceType.js"
 import { ImapImportSystemFacade } from "./ImapImportSystemFacade.js"
 
 export class ImapImportSystemFacadeReceiveDispatcher {
@@ -13,6 +14,11 @@ export class ImapImportSystemFacadeReceiveDispatcher {
 			}
 			case "stopImport": {
 				return this.facade.stopImport()
+			}
+			case "writeToLog": {
+				const logText: string = arg[0]
+				const logSourceType: LogSourceType = arg[1]
+				return this.facade.writeToLog(logText, logSourceType)
 			}
 		}
 	}

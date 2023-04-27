@@ -1,7 +1,7 @@
 import { OptimizerUpdateAction, THROUGHPUT_THRESHOLD } from "../AdSyncOptimizer.js"
-import { AverageThroughput, TimeStamp } from "../../utils/AdSyncUtils.js"
 import { ProgrammingError } from "../../../../../api/common/error/ProgrammingError.js"
-import { AdSyncProcessesOptimizer, OptimizerProcess } from "./AdSyncProcessesOptimizer.js"
+import { AdSyncProcessesOptimizer } from "./AdSyncProcessesOptimizer.js"
+import { LogSourceType } from "../../utils/AdSyncLogger.js"
 
 const OPTIMIZATION_INTERVAL = 5 // in seconds
 const MINIMUM_PARALLEL_PROCESSES = 2
@@ -17,20 +17,23 @@ export class AdSyncParallelProcessesOptimizer extends AdSyncProcessesOptimizer {
 		this.optimize() // call once to start downloading of mails
 	}
 
-
 	override optimize(): void {
 		let currentInterval = this.getCurrentTimeStampInterval()
 		let lastInterval = this.getLastTimeStampInterval()
-		let averageCombinedThroughputCurrent = this.getAverageCombinedThroughputInTimeInterval(currentInterval.fromTimeStamp, currentInterval.toTimeStamp)
-		let averageCombinedThroughputLast = this.getAverageCombinedThroughputInTimeInterval(lastInterval.fromTimeStamp, lastInterval.toTimeStamp)
-		console.log("(ParallelProcessOptimizer) Throughput stats: ... | " + averageCombinedThroughputLast + " | " + averageCombinedThroughputCurrent + " |")
+		let combinedAverageThroughputCurrent = this.getCombinedAverageThroughputInTimeInterval(currentInterval.fromTimeStamp, currentInterval.toTimeStamp)
+		let combinedAverageThroughputLast = this.getCombinedAverageThroughputInTimeInterval(lastInterval.fromTimeStamp, lastInterval.toTimeStamp)
+
+		//TODO Change to use totalCombinedThroughput instead of average -> average means that adding processes decreases the average Throughput, but maximizes the total throughput!
+		//TODO apply these changes on the other branch
+
+		console.log("(ParallelProcessOptimizer) Throughput stats: ... | " + combinedAverageThroughputLast + " | " + combinedAverageThroughputCurrent + " |")
 
 		let lastUpdateAction = this.optimizerUpdateActionHistory.at(-1)
 		if (lastUpdateAction === undefined) {
 			throw new ProgrammingError("The optimizerUpdateActionHistory has not been initialized correctly!")
 		}
 
-		if (averageCombinedThroughputCurrent + THROUGHPUT_THRESHOLD >= averageCombinedThroughputLast) {
+		if (combinedAverageThroughputCurrent + THROUGHPUT_THRESHOLD >= combinedAverageThroughputLast) {
 			if (lastUpdateAction != OptimizerUpdateAction.DECREASE) {
 				if (this.runningProcessMap.size < this.maxParallelProcesses) {
 					this.startSyncSessionProcesses(this.optimizationDifference)
@@ -50,23 +53,13 @@ export class AdSyncParallelProcessesOptimizer extends AdSyncProcessesOptimizer {
 		}
 
 		this.optimizerUpdateTimeStampHistory.push(currentInterval.toTimeStamp)
-	}
 
-	private getAverageCombinedThroughputInTimeInterval(fromTimeStamp: TimeStamp, toTimeStamp: TimeStamp): AverageThroughput {
-		if (this.runningProcessMap.size == 0) {
-			return 0
-		} else {
-			let activeProcessCount = 0
-			return (
-				[...this.runningProcessMap.values()].reduce<AverageThroughput>((acc: AverageThroughput, value: OptimizerProcess) => {
-					if (value.syncSessionMailbox) {
-						acc += value.syncSessionMailbox.getAverageThroughputInTimeInterval(fromTimeStamp, toTimeStamp)
-						activeProcessCount += 1
-					}
-					return acc
-				}, 0) / (activeProcessCount != 0 ? activeProcessCount : 1)
-			)
-		}
+		this.adSyncLogger.writeToLog(
+			`${currentInterval.fromTimeStamp}, ${currentInterval.toTimeStamp}, ${combinedAverageThroughputCurrent}, ${this.optimizerUpdateActionHistory.at(
+				-1,
+			)}, ${this.maxParallelProcesses}, ${this.runningProcessMap.size}, ${[...this.runningProcessMap.values()].map((value) => value.mailboxPath)}\n`,
+			LogSourceType.PARALLEL_PROCESSES_OPTIMIZER,
+		)
 	}
 
 	forceStopSyncSessionProcess(processId: number, isExceededRateLimit: boolean = false) {

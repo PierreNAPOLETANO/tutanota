@@ -215,7 +215,7 @@ async function createComponents(): Promise<Components> {
 			new DesktopDesktopSystemFacade(wm, window, sock),
 			new DesktopExportFacade(desktopUtils, conf, window, dragIcons),
 			new DesktopFileFacade(window, dl, electron),
-			new DesktopImapImportSystemFacade(window),
+			new DesktopImapImportSystemFacade(window, fs),
 			new DesktopInterWindowEventFacade(window, wm),
 			nativeCredentialsFacade,
 			desktopCrypto,

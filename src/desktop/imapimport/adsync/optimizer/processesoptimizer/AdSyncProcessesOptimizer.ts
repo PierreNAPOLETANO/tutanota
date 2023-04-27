@@ -1,7 +1,8 @@
 import { AdSyncOptimizer } from "../AdSyncOptimizer.js"
 import { ImapSyncSessionMailbox } from "../../ImapSyncSessionMailbox.js"
 import { SyncSessionEventListener } from "../../ImapSyncSession.js"
-import { TimeStamp } from "../../utils/AdSyncUtils.js"
+import { AverageThroughput, TimeStamp } from "../../utils/AdSyncUtils.js"
+import { AdSyncLogger } from "../../utils/AdSyncLogger.js"
 
 export interface AdSyncProcessesOptimizerEventListener {
 	onDownloadUpdate(processId: number, syncSessionMailbox: ImapSyncSessionMailbox, downloadedQuota: number): void
@@ -27,17 +28,23 @@ export class AdSyncProcessesOptimizer extends AdSyncOptimizer implements AdSyncP
 	private syncSessionEventListener: SyncSessionEventListener
 	protected runningProcessMap = new Map<number, OptimizerProcess>()
 	private nextProcessId: number = 0
+	protected adSyncLogger: AdSyncLogger
 
-	constructor(mailboxes: ImapSyncSessionMailbox[], optimizationDifference: number, syncSessionEventListener: SyncSessionEventListener) {
+	constructor(
+		mailboxes: ImapSyncSessionMailbox[],
+		optimizationDifference: number,
+		syncSessionEventListener: SyncSessionEventListener,
+		adSyncLogger: AdSyncLogger,
+	) {
 		super(optimizationDifference)
 		this.optimizedSyncSessionMailboxes = mailboxes
 		this.syncSessionEventListener = syncSessionEventListener
+		this.adSyncLogger = adSyncLogger
 	}
 
 	protected optimize(): void {
 		// empty optimize
-		// overwritten by AdSyncParallelProcessesOptimizer
-		// **not** overwritten by AdSyncSingleProcessesOptimizer
+		// overwritten by AdSyncParallelProcessesOptimizer and AdSyncSingleProcessesOptimizer
 	}
 
 	protected startSyncSessionProcesses(amount: number) {
@@ -79,9 +86,9 @@ export class AdSyncProcessesOptimizer extends AdSyncOptimizer implements AdSyncP
 
 	protected nextMailboxesToDownload(amount: number): ImapSyncSessionMailbox[] {
 		return this.optimizedSyncSessionMailboxes
-				   .filter((mailbox) => !this.isExistRunningProcessForMailbox(mailbox)) // we only allow one process per IMAP folder
-				   .sort((a, b) => b.importance - a.importance)
-				   .slice(0, amount)
+			.filter((mailbox) => !this.isExistRunningProcessForMailbox(mailbox)) // we only allow one process per IMAP folder
+			.sort((a, b) => b.importance - a.importance)
+			.slice(0, amount)
 	}
 
 	protected nextProcessIdsToDrop(amount: number): number[] {
@@ -111,7 +118,20 @@ export class AdSyncProcessesOptimizer extends AdSyncOptimizer implements AdSyncP
 		})
 	}
 
-	forceStopSyncSessionProcess(processId: number,  isExceededRateLimit: boolean = false) {
+	protected getCombinedAverageThroughputInTimeInterval(fromTimeStamp: TimeStamp, toTimeStamp: TimeStamp): AverageThroughput {
+		if (this.runningProcessMap.size == 0) {
+			return 0
+		} else {
+			return [...this.runningProcessMap.values()].reduce<AverageThroughput>((acc: AverageThroughput, value: OptimizerProcess) => {
+				if (value.syncSessionMailbox) {
+					acc += value.syncSessionMailbox.getAverageThroughputInTimeInterval(fromTimeStamp, toTimeStamp)
+				}
+				return acc
+			}, 0)
+		}
+	}
+
+	forceStopSyncSessionProcess(processId: number, isExceededRateLimit: boolean = false) {
 		this.runningProcessMap.delete(processId)
 		this.syncSessionEventListener.onStopSyncSessionProcess(processId)
 	}

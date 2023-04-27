@@ -12,7 +12,7 @@ interface UidFetchSequence {
 export enum UidFetchRequestType {
 	CREATE,
 	UPDATE,
-	QRESYNC
+	QRESYNC,
 }
 
 export interface UidFetchRequest {
@@ -22,7 +22,6 @@ export interface UidFetchRequest {
 }
 
 export class DifferentialUidLoader {
-
 	private uidFetchRequestQueue: UidFetchRequest[] = []
 
 	private uidCreateQueue: number[] = []
@@ -35,12 +34,13 @@ export class DifferentialUidLoader {
 	private readonly isEnableImapQresync: boolean
 	private readonly isIncludeMailUpdates: boolean
 
-	constructor(imapClient: typeof ImapFlow,
-				adSyncEventListener: AdSyncEventListener,
-				openedImapMailbox: ImapMailbox,
-				importedUidToMailIdsMap: Map<number, ImapMailIds>,
-				isEnableImapQresync: boolean,
-				isIncludeMailUpdates: boolean
+	constructor(
+		imapClient: typeof ImapFlow,
+		adSyncEventListener: AdSyncEventListener,
+		openedImapMailbox: ImapMailbox,
+		importedUidToMailIdsMap: Map<number, ImapMailIds>,
+		isEnableImapQresync: boolean,
+		isIncludeMailUpdates: boolean,
 	) {
 		this.imapClient = imapClient
 		this.adSyncEventListener = adSyncEventListener
@@ -53,12 +53,10 @@ export class DifferentialUidLoader {
 	async calculateInitialUidDiff(): Promise<number[]> {
 		// if IMAP QRESYNC is enabled and supported by the IMAP server, we do not need to calculate the diff on our own
 		if (this.isEnableImapQresync) {
-			this.uidFetchRequestQueue.push(
-				{
-					uidFetchSequenceString: '1:*',
-					fetchRequestType: UidFetchRequestType.QRESYNC
-				}
-			)
+			this.uidFetchRequestQueue.push({
+				uidFetchSequenceString: "1:*",
+				fetchRequestType: UidFetchRequestType.QRESYNC,
+			})
 			return [] // delete events are handle automatically by IMAP QRESYNC extension
 		}
 
@@ -99,11 +97,11 @@ export class DifferentialUidLoader {
 		}
 
 		let uidFetchSequenceStrings = this.buildUidFetchSequenceStrings(nextUidFetchRange)
-		let nextUidFetchSequenceRequests = uidFetchSequenceStrings.map(uidFetchSequenceString => {
+		let nextUidFetchSequenceRequests = uidFetchSequenceStrings.map((uidFetchSequenceString) => {
 			return {
 				uidFetchSequenceString: uidFetchSequenceString,
 				fetchRequestType: fetchRequestType,
-				usedDownloadBlockSize: downloadBlockSize
+				usedDownloadBlockSize: downloadBlockSize,
 			}
 		})
 
@@ -121,7 +119,7 @@ export class DifferentialUidLoader {
 			} else {
 				let newUidFetchSequence = {
 					fromUid: uid,
-					toUid: uid
+					toUid: uid,
 				}
 				uidFetchSequenceList.push(newUidFetchSequence)
 			}
@@ -130,26 +128,33 @@ export class DifferentialUidLoader {
 
 		// We restrict the length of the uidFetchSequenceString to speed up IMAP server communication (we only allow 25 SequenceStrings per IMAP command)
 		let perChunk = 25
-		let uidFetchSequenceChunks = uidFetchSequenceList.reduce<UidFetchSequence[][]>((uidFetchSequenceListChunks: UidFetchSequence[][], uidFetchSequenceList, index) => {
-			const chunkIndex = Math.floor(index / perChunk)
+		let uidFetchSequenceChunks = uidFetchSequenceList.reduce<UidFetchSequence[][]>(
+			(uidFetchSequenceListChunks: UidFetchSequence[][], uidFetchSequenceList, index) => {
+				const chunkIndex = Math.floor(index / perChunk)
 
-			if (!uidFetchSequenceListChunks[chunkIndex]) {
-				uidFetchSequenceListChunks[chunkIndex] = []
-			}
+				if (!uidFetchSequenceListChunks[chunkIndex]) {
+					uidFetchSequenceListChunks[chunkIndex] = []
+				}
 
-			uidFetchSequenceListChunks[chunkIndex].push(uidFetchSequenceList)
+				uidFetchSequenceListChunks[chunkIndex].push(uidFetchSequenceList)
 
-			return uidFetchSequenceListChunks
-		}, [])
+				return uidFetchSequenceListChunks
+			},
+			[],
+		)
 
-		let uidFetchSequenceStrings = uidFetchSequenceChunks.map(uidFetchSequenceChunk => {
+		let uidFetchSequenceStrings = uidFetchSequenceChunks.map((uidFetchSequenceChunk) => {
 			return uidFetchSequenceChunk.reduce<string>((uidFetchSequenceString, uidFetchSequence, index) => {
 				if (uidFetchSequence.fromUid == uidFetchSequence.toUid) {
-					return uidFetchSequenceString + `${uidFetchSequence.fromUid}` + (index == uidFetchSequenceChunk.length - 1 ? '' : ',')
+					return uidFetchSequenceString + `${uidFetchSequence.fromUid}` + (index == uidFetchSequenceChunk.length - 1 ? "" : ",")
 				} else {
-					return uidFetchSequenceString + `${uidFetchSequence.fromUid}:${uidFetchSequence.toUid}` + (index == uidFetchSequenceChunk.length - 1 ? '' : ',')
+					return (
+						uidFetchSequenceString +
+						`${uidFetchSequence.fromUid}:${uidFetchSequence.toUid}` +
+						(index == uidFetchSequenceChunk.length - 1 ? "" : ",")
+					)
 				}
-			}, '')
+			}, "")
 		})
 
 		return uidFetchSequenceStrings

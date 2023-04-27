@@ -69,12 +69,12 @@ export function imapMailToImportMailParams(
 		imapUid: imapMail.uid,
 		imapModSeq: imapMail.modSeq ?? null,
 		imapFolderSyncState: folderSyncStateId,
+		mailSize: imapMail.rfc822Source?.length ?? 0,
+		imapPath: imapMail.belongsToMailbox.path,
 	}
 }
 
-function importAttachmentsFromImapMailAttachments(
-	imapMailAttachments: ImapMailAttachment[]
-): ImapImportDataFile[] {
+function importAttachmentsFromImapMailAttachments(imapMailAttachments: ImapMailAttachment[]): ImapImportDataFile[] {
 	return imapMailAttachments.map((imapMailAttachment) => {
 		let imapImportDataFile: ImapImportDataFile = {
 			_type: "DataFile",
