@@ -1650,5 +1650,8 @@ export default {
 		"unlimitedRequired_msg": "Um diese Funktion zu verwenden, musst du zum Plan Unlimited wechseln.",
 		"currentPlanDiscontinued_msg": "Dein aktuelles Abonnement ist nicht mehr verfügbar. Bitte wähle eines der unten angezeigten Abonnements.",
 		"addCustomDomainAddAdresses_msg": "Die Domain wurde zu deinem Account hinzugefügt, du kannst nun eine neue E-Mail-Adresse erstellen.",
+		"giftCardOptionTextC_msg": "Für {fullCredit} Gutahben oder Anzahlung für einen Revolutionary-Account.",
+		"giftCardOptionTextD_msg": "Für {fullCredit} Guthaben oder einen Revolutionary-Account.",
+		"giftCardOptionTextE_msg": "Für {fullCredit} Guthaben oder einen Revolutionary-Account mit {remainingCredit} Guthaben.",
 	}
 }

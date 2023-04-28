@@ -1650,6 +1650,9 @@ export default {
 		"pricing.upgradeLater_msg": "Use Tutanota free of charge and upgrade later. Only for personal use.",
 		"addCustomDomainAddAdresses_msg": "The domain was assigned to your account, you can now create a new email address.",
 		"currentPlanDiscontinued_msg": "Your current plan is no longer available. Please choose between the plans displayed below.",
+		"giftCardOptionTextC_msg": "For {fullCredit} credit or prepayment for a Revolutionary plan",
+		"giftCardOptionTextD_msg": "For {fullCredit} credit or a Revolutionary plan.",
+		"giftCardOptionTextE_msg": "For {fullCredit} credit or a Revolutionary plan with {remainingCredit} credit.",
 		// TODO delete from phrase
 		"pricing.downgradeToPrivateNotAllowed_msg": "It is not possible to change the account usage from Business to Personal.",
 	}
