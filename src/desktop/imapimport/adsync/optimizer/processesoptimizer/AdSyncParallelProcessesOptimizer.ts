@@ -17,20 +17,19 @@ export class AdSyncParallelProcessesOptimizer extends AdSyncProcessesOptimizer {
 		this.optimize() // call once to start downloading of mails
 	}
 
-
 	override optimize(): void {
 		let currentInterval = this.getCurrentTimeStampInterval()
 		let lastInterval = this.getLastTimeStampInterval()
-		let averageCombinedThroughputCurrent = this.getAverageCombinedThroughputInTimeInterval(currentInterval.fromTimeStamp, currentInterval.toTimeStamp)
-		let averageCombinedThroughputLast = this.getAverageCombinedThroughputInTimeInterval(lastInterval.fromTimeStamp, lastInterval.toTimeStamp)
-		console.log("(ParallelProcessOptimizer) Throughput stats: ... | " + averageCombinedThroughputLast + " | " + averageCombinedThroughputCurrent + " |")
+		let combinedAverageThroughputCurrent = this.getCombinedAverageThroughputInTimeInterval(currentInterval.fromTimeStamp, currentInterval.toTimeStamp)
+		let combinedAverageThroughputLast = this.getCombinedAverageThroughputInTimeInterval(lastInterval.fromTimeStamp, lastInterval.toTimeStamp)
+		console.log("(ParallelProcessOptimizer) Throughput stats: ... | " + combinedAverageThroughputLast + " | " + combinedAverageThroughputCurrent + " |")
 
 		let lastUpdateAction = this.optimizerUpdateActionHistory.at(-1)
 		if (lastUpdateAction === undefined) {
 			throw new ProgrammingError("The optimizerUpdateActionHistory has not been initialized correctly!")
 		}
 
-		if (averageCombinedThroughputCurrent + THROUGHPUT_THRESHOLD >= averageCombinedThroughputLast) {
+		if (combinedAverageThroughputCurrent + THROUGHPUT_THRESHOLD >= combinedAverageThroughputLast) {
 			if (lastUpdateAction != OptimizerUpdateAction.DECREASE) {
 				if (this.runningProcessMap.size < this.maxParallelProcesses) {
 					this.startSyncSessionProcesses(this.optimizationDifference)
@@ -52,20 +51,16 @@ export class AdSyncParallelProcessesOptimizer extends AdSyncProcessesOptimizer {
 		this.optimizerUpdateTimeStampHistory.push(currentInterval.toTimeStamp)
 	}
 
-	private getAverageCombinedThroughputInTimeInterval(fromTimeStamp: TimeStamp, toTimeStamp: TimeStamp): AverageThroughput {
+	private getCombinedAverageThroughputInTimeInterval(fromTimeStamp: TimeStamp, toTimeStamp: TimeStamp): AverageThroughput {
 		if (this.runningProcessMap.size == 0) {
 			return 0
 		} else {
-			let activeProcessCount = 0
-			return (
-				[...this.runningProcessMap.values()].reduce<AverageThroughput>((acc: AverageThroughput, value: OptimizerProcess) => {
-					if (value.syncSessionMailbox) {
-						acc += value.syncSessionMailbox.getAverageThroughputInTimeInterval(fromTimeStamp, toTimeStamp)
-						activeProcessCount += 1
-					}
-					return acc
-				}, 0) / (activeProcessCount != 0 ? activeProcessCount : 1)
-			)
+			return [...this.runningProcessMap.values()].reduce<AverageThroughput>((acc: AverageThroughput, value: OptimizerProcess) => {
+				if (value.syncSessionMailbox) {
+					acc += value.syncSessionMailbox.getAverageThroughputInTimeInterval(fromTimeStamp, toTimeStamp)
+				}
+				return acc
+			}, 0)
 		}
 	}
 
