@@ -157,12 +157,7 @@ export class LoginViewModel implements ILoginViewModel {
 
 	async useUserId(userId: string): Promise<void> {
 		this._autoLoginCredentials = await this.credentialsProvider.getCredentialsInfoByUserId(userId)
-
-		if (this._autoLoginCredentials) {
-			this.displayMode = DisplayMode.Credentials
-		} else {
-			this.displayMode = DisplayMode.Form
-		}
+		this.displayMode = this._autoLoginCredentials ? DisplayMode.Credentials : DisplayMode.Form
 	}
 
 	canLogin(): boolean {
