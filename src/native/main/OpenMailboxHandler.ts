@@ -13,18 +13,12 @@ export async function openMailbox(userId: Id, mailAddress: string, requestedPath
 			m.route.set("/mail" + requestedPath)
 		}
 	} else {
-		if (!requestedPath) {
-			m.route.set(`/login?noAutoLogin=false&userId=${userId}&loginWith=${mailAddress}`)
-		} else {
-			m.route.set(`/login?noAutoLogin=false&userId=${userId}&loginWith=${mailAddress}&requestedPath=${encodeURIComponent(requestedPath)}`)
-		}
+		const redirectUser = !requestedPath ? `/login?noAutoLogin=false&userId=${userId}&loginWith=${mailAddress}` : `/login?noAutoLogin=false&userId=${userId}&loginWith=${mailAddress}&requestedPath=${encodeURIComponent(requestedPath)}`;
+		m.route.set(redirectUser);
 	}
 }
 
 export function openCalendar(userId: Id) {
-	if (locator.logins.isUserLoggedIn() && locator.logins.getUserController().user._id === userId) {
-		m.route.set("/calendar/agenda")
-	} else {
-		m.route.set(`/login?noAutoLogin=false&userId=${userId}&requestedPath=${encodeURIComponent("/calendar/agenda")}`)
-	}
+	const calendarRoute = (locator.logins.isUserLoggedIn() && locator.logins.getUserController().user._id === userId) ? "/calendar/agenda" : `/login?noAutoLogin=false&userId=${userId}&requestedPath=${encodeURIComponent("/calendar/agenda")}`;
+	m.route.set(calendarRoute);
 }
