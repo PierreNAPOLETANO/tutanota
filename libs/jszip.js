@@ -71,10 +71,7 @@ exports.decode = function(input) {
     input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
 
     var totalLength = input.length * 3 / 4;
-    if(input.charAt(input.length - 1) === _keyStr.charAt(64)) {
-        totalLength--;
-    }
-    if(input.charAt(input.length - 2) === _keyStr.charAt(64)) {
+    if(input.charAt(input.length - 1) === _keyStr.charAt(64) || input.charAt(input.length - 2) === _keyStr.charAt(64)) {
         totalLength--;
     }
     if (totalLength % 1 !== 0) {
@@ -87,11 +84,7 @@ exports.decode = function(input) {
         throw new Error("Invalid base64 input, bad content length.");
     }
     var output;
-    if (support.uint8array) {
-        output = new Uint8Array(totalLength|0);
-    } else {
-        output = new Array(totalLength|0);
-    }
+    output = support.uint8array ? new Uint8Array(totalLength|0) : new Array(totalLength|0);
 
     while (i < input.length) {
 
@@ -283,11 +276,7 @@ module.exports = function crc32wrapper(input, crc) {
 
     var isArray = utils.getTypeOf(input) !== "string";
 
-    if(isArray) {
-        return crc32(crc|0, input, input.length, 0);
-    } else {
-        return crc32str(crc|0, input, input.length, 0);
-    }
+    return isArray ? crc32(crc|0, input, input.length, 0) : crc32str(crc|0, input, input.length, 0);
 };
 
 },{"./utils":32}],5:[function(require,module,exports){
@@ -311,11 +300,7 @@ exports.dosPermissions = null;
 // - it should be better integrated in the system (unhandledRejection in node)
 // - the environment may have a custom Promise implementation (see zone.js)
 var ES6Promise = null;
-if (typeof Promise !== "undefined") {
-    ES6Promise = Promise;
-} else {
-    ES6Promise = require("lie");
-}
+ES6Promise = typeof Promise !== "undefined" ? Promise = require("lie");
 
 /**
  * Let the user use/change some implementations.
@@ -1560,11 +1545,7 @@ var out = {
             }
             else { // text
                 var obj = this.files[this.root + name];
-                if (obj && !obj.dir) {
-                    return obj;
-                } else {
-                    return null;
-                }
+                return obj && !obj.dir ? obj : null;
             }
         }
         else { // more than one argument : we have data !
@@ -2490,11 +2471,7 @@ GenericWorker.prototype = {
      */
     toString : function () {
         var me = "Worker " + this.name;
-        if (this.previous) {
-            return this.previous + " -> " + me;
-        } else {
-            return me;
-        }
+        return this.previous ? this.previous + " -> " + me : me;
     }
 };
 
@@ -3050,11 +3027,7 @@ var external = require("./external");
  */
 function string2binary(str) {
     var result = null;
-    if (support.uint8array) {
-      result = new Uint8Array(str.length);
-    } else {
-      result = new Array(str.length);
-    }
+    result = support.uint8array ? new Uint8Array(str.length) : new Array(str.length);
     return stringToArrayLike(str, result);
 }
 
@@ -4877,11 +4850,7 @@ Deflate.prototype.onData = function (chunk) {
 Deflate.prototype.onEnd = function (status) {
   // On success - join
   if (status === Z_OK) {
-    if (this.options.to === 'string') {
-      this.result = this.chunks.join('');
-    } else {
-      this.result = utils.flattenChunks(this.chunks);
-    }
+    this.result = this.options.to === 'string' ? this.chunks.join('') : utils.flattenChunks(this.chunks);
   }
   this.chunks = [];
   this.err = status;
@@ -5294,15 +5263,8 @@ Inflate.prototype.onData = function (chunk) {
  **/
 Inflate.prototype.onEnd = function (status) {
   // On success - join
-  if (status === c.Z_OK) {
-    if (this.options.to === 'string') {
-      // Glue & convert here, until we teach pako to send
-      // utf8 alligned strings to onData
-      this.result = this.chunks.join('');
-    } else {
-      this.result = utils.flattenChunks(this.chunks);
-    }
-  }
+  if (status === c.Z_OK)
+	  this.result = this.options.to === 'string' ? this.chunks.join('') : utils.flattenChunks(this.chunks);
   this.chunks = [];
   this.err = status;
   this.msg = this.strm.msg;
