@@ -114,12 +114,7 @@ export function getCountFromPriceData(priceData: PriceData | null, featureType: 
  */
 export function getPriceFromPriceData(priceData: PriceData | null, featureType: NumberString): number {
 	let item = getPriceItem(priceData, featureType)
-
-	if (item) {
-		return Number(item.price)
-	} else {
-		return 0
-	}
+	return item ? Number(item.price) : 0;
 }
 
 const SUBSCRIPTION_CONFIG_RESOURCE_URL = "https://tutanota.com/resources/data/subscriptions.json"
