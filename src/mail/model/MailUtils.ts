@@ -126,11 +126,7 @@ export function getSenderOrRecipientHeading(mail: Mail, preferNameOnly: boolean)
 }
 
 export function getSenderOrRecipientHeadingTooltip(mail: Mail): string {
-	if (isTutanotaTeamMail(mail) && !isExcludedMailAddress(mail.sender.address)) {
-		return lang.get("tutaoInfo_msg")
-	} else {
-		return ""
-	}
+	return (isTutanotaTeamMail(mail) && !isExcludedMailAddress(mail.sender.address)) ? lang.get("tutaoInfo_msg") : ""
 }
 
 export function isTutanotaTeamMail(mail: Mail): boolean {
@@ -219,11 +215,7 @@ export function getFolderIcon(folder: MailFolder): AllIcons {
 }
 
 export function getEnabledMailAddressesWithUser(mailboxDetail: MailboxDetail, userGroupInfo: GroupInfo): Array<string> {
-	if (isUserMailbox(mailboxDetail)) {
-		return getEnabledMailAddressesForGroupInfo(userGroupInfo)
-	} else {
-		return getEnabledMailAddressesForGroupInfo(mailboxDetail.mailGroupInfo)
-	}
+	return isUserMailbox(mailboxDetail) ? getEnabledMailAddressesForGroupInfo(userGroupInfo) : getEnabledMailAddressesForGroupInfo(mailboxDetail.mailGroupInfo)
 }
 
 export function isUserMailbox(mailboxDetails: MailboxDetail): boolean {
