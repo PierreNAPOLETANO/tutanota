@@ -213,11 +213,7 @@ async function checkInboxRule(entityClient: EntityClient, mail: Mail, inboxRule:
 					})
 			} else if (!isLegacyMail(mail)) {
 				const details = await getMailDetails(entityClient, mail)
-				if (details?.headers != null) {
-					return _checkContainsRule(getMailHeaders(details.headers), inboxRule)
-				} else {
-					return false
-				}
+				return details?.headers != null ? _checkContainsRule(getMailHeaders(details.headers), inboxRule) : false
 			} else {
 				return false
 			}
