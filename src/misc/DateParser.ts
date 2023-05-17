@@ -156,11 +156,7 @@ export function parseBirthday(text: string): Birthday | null {
 			if (String(birthdayValues[yearPos]).length === 4) {
 				birthday.year = String(birthdayValues[yearPos])
 			} else if (String(birthdayValues[yearPos]).length === 2) {
-				if (birthdayValues[yearPos] > Number(String(new Date().getFullYear()).substring(2))) {
-					birthday.year = "19" + String(birthdayValues[yearPos])
-				} else {
-					birthday.year = "20" + String(birthdayValues[yearPos])
-				}
+				birthday.year = birthdayValues[yearPos] > Number(String(new Date().getFullYear()).substring(2)) ? "19" + String(birthdayValues[yearPos]) : "20" + String(birthdayValues[yearPos])
 			} else {
 				return null
 			}
