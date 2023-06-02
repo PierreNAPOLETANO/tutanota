@@ -169,12 +169,8 @@ export class OfflineDbManager {
 	 * @param listId the mail list that we want to lock
 	 */
 	async lockRangesDbAccess(listId: Id): Promise<void> {
-		if (this.listIdLocks.get(listId)) {
-			await this.listIdLocks.get(listId)?.promise
-			this.listIdLocks.set(listId, defer())
-		} else {
-			this.listIdLocks.set(listId, defer())
-		}
+		if (this.listIdLocks.get(listId)) await this.listIdLocks.get(listId)?.promise
+		this.listIdLocks.set(listId, defer())
 	}
 
 	/**
