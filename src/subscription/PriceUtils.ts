@@ -105,12 +105,9 @@ export function getCountFromPriceData(priceData: PriceData | null, featureType: 
  */
 export function getPriceFromPriceData(priceData: PriceData | null, featureType: NumberString): number {
 	let item = getPriceItem(priceData, featureType)
-
-	if (item) {
-		return Number(item.price)
-	} else {
-		return 0
-	}
+	return item ?
+		Number(item.price) :
+		0;
 }
 
 export class PriceAndConfigProvider {
@@ -223,11 +220,9 @@ function descendingSubscriptionOrder(): Array<PlanType> {
  */
 export function isSubscriptionDowngrade(targetSubscription: PlanType, currentSubscription: PlanType): boolean {
 	const order = descendingSubscriptionOrder()
-	if (Object.values(PlanType).includes(downcast(currentSubscription))) {
-		return order.indexOf(targetSubscription) > order.indexOf(downcast(currentSubscription))
-	} else {
-		return false
-	}
+	return Object.values(PlanType).includes(downcast(currentSubscription)) ?
+		order.indexOf(targetSubscription) > order.indexOf(downcast(currentSubscription)) : 
+		false
 }
 
 /**
